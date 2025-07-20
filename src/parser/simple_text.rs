@@ -48,9 +48,7 @@ impl SimpleTextParser {
     ///
     /// * `option` - The `SimpleTextParserOptions` to configure the parser.
     pub fn new(option: SimpleTextParserOptions) -> Self {
-        SimpleTextParser {
-            option,
-        }
+        SimpleTextParser { option }
     }
 
     /// Parses the input string and converts it into an `Outline` structure.
@@ -126,7 +124,11 @@ mod tests {
         outline.add_item("1", 1, vec!["1(1)".to_string(), "1(2)".to_string()]);
         outline.add_item("1.1", 2, vec!["1.1(1)".to_string(), "1.1(2)".to_string()]);
         outline.add_item("1.2", 2, vec!["1.2(1)".to_string(), "1.2(2)".to_string()]);
-        outline.add_item("1.2.1", 3, vec!["1.2.1(1)".to_string(), "1.2.1(2)".to_string()]);
+        outline.add_item(
+            "1.2.1",
+            3,
+            vec!["1.2.1(1)".to_string(), "1.2.1(2)".to_string()],
+        );
         outline
     }
 
@@ -152,7 +154,10 @@ mod tests {
         let parser = SimpleTextParser::new(options);
         assert_eq!(parser.option.indent, "  ");
         assert_eq!(parser.option.delimiter, Some("\t".to_string()));
-        assert_eq!(parser.option.value_header, vec!["H(1)".to_string(), "H(2)".to_string()]);
+        assert_eq!(
+            parser.option.value_header,
+            vec!["H(1)".to_string(), "H(2)".to_string()]
+        );
         assert_eq!(parser.option.preserve_empty_line, true);
     }
 
