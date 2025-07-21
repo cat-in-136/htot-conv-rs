@@ -1,0 +1,223 @@
+use crate::generator::base::Generator;
+use crate::outline::Outline;
+use anyhow::Result;
+use umya_spreadsheet::Worksheet;
+
+pub struct XlsxType0Generator;
+
+impl Generator for XlsxType0Generator {
+    fn output_to_worksheet(&self, ws: &mut Worksheet, data: &Outline) -> Result<()> {
+        let mut row_index = 0;
+        let max_value_length = data.max_value_length();
+
+        // Header row
+        let mut header_values: Vec<String> = Vec::new();
+        header_values.push(data.key_header[0].clone());
+        header_values.push("Outline Level".to_string());
+        header_values.extend(data.value_header.iter().map(|s| s.to_string()));
+
+        // Pad header_values with empty strings if necessary
+        while header_values.len() < 2 + max_value_length {
+            header_values.push("".to_string());
+        }
+
+        for (col_index, v) in header_values.iter().enumerate() {
+            ws.get_cell_mut((col_index as u32 + 1, row_index as u32 + 1))
+                .set_value(v.clone());
+            let style = ws.get_style_mut((col_index as u32 + 1, row_index as u32 + 1));
+            style
+                .get_borders_mut()
+                .get_top_mut()
+                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+            style
+                .get_borders_mut()
+                .get_bottom_mut()
+                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+            style
+                .get_borders_mut()
+                .get_left_mut()
+                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+            style
+                .get_borders_mut()
+                .get_right_mut()
+                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+        }
+        row_index += 1;
+
+        // Data rows
+        for item in &data.item {
+            let mut row_values: Vec<String> = Vec::new();
+            row_values.push(item.key.clone());
+            row_values.push(item.level.to_string());
+            row_values.extend(item.value.iter().map(|s| s.to_string()));
+
+            // Pad row_values with empty strings if necessary
+            while row_values.len() < 2 + max_value_length {
+                row_values.push("".to_string());
+            }
+
+            for (col_index, v) in row_values.iter().enumerate() {
+                ws.get_cell_mut((col_index as u32 + 1, row_index as u32 + 1))
+                    .set_value(v.clone());
+                let style = ws.get_style_mut((col_index as u32 + 1, row_index as u32 + 1));
+                style
+                    .get_borders_mut()
+                    .get_top_mut()
+                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+                style
+                    .get_borders_mut()
+                    .get_bottom_mut()
+                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+                style
+                    .get_borders_mut()
+                    .get_left_mut()
+                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+                style
+                    .get_borders_mut()
+                    .get_right_mut()
+                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+            }
+            row_index += 1;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_xlsx_type0_generator() {
+        let mut outline = Outline::new();
+        outline.key_header = vec!["Key".to_string()];
+        outline.value_header = vec!["Value1".to_string(), "Value2".to_string()];
+        outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
+        outline.add_item("Item 2", 2, vec!["Val2A".to_string()]);
+        outline.add_item(
+            "Item 3",
+            1,
+            vec![
+                "Val3A".to_string(),
+                "Val3B".to_string(),
+                "Val3C".to_string(),
+            ],
+        );
+
+        let generator = XlsxType0Generator;
+
+        let mut spreadsheet = umya_spreadsheet::new_file();
+        let mut worksheet = spreadsheet.get_sheet_mut(&0).unwrap();
+
+        generator
+            .output_to_worksheet(&mut worksheet, &outline)
+            .unwrap();
+
+        // Save to a temporary file
+        let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
+        let temp_path = temp_file.path().to_path_buf();
+        umya_spreadsheet::writer::xlsx::write(&spreadsheet, &temp_path).unwrap();
+
+        // Read the file back and assert its content
+        let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+
+        // Verify Header Row
+        assert_eq!(read_worksheet.get_value((1, 1)).as_str(), "Key");
+        assert_eq!(read_worksheet.get_value((2, 1)).as_str(), "Outline Level");
+        assert_eq!(read_worksheet.get_value((3, 1)).as_str(), "Value1");
+        assert_eq!(read_worksheet.get_value((4, 1)).as_str(), "Value2");
+
+        // Verify Header Row Borders
+        let header_style_1_1 = read_worksheet.get_style((1, 1));
+        assert_eq!(
+            header_style_1_1
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            header_style_1_1
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            header_style_1_1
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            header_style_1_1
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+
+        // Verify Data Row 1
+        assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
+        assert_eq!(read_worksheet.get_value((2, 2)).as_str(), "1");
+        assert_eq!(read_worksheet.get_value((3, 2)).as_str(), "Val1A");
+        assert_eq!(read_worksheet.get_value((4, 2)).as_str(), "Val1B");
+
+        // Verify Data Row 2
+        assert_eq!(read_worksheet.get_value((1, 3)).as_str(), "Item 2");
+        assert_eq!(read_worksheet.get_value((2, 3)).as_str(), "2");
+        assert_eq!(read_worksheet.get_value((3, 3)).as_str(), "Val2A");
+
+        // Verify Data Row 3
+        assert_eq!(read_worksheet.get_value((1, 4)).as_str(), "Item 3");
+        assert_eq!(read_worksheet.get_value((2, 4)).as_str(), "1");
+        assert_eq!(read_worksheet.get_value((3, 4)).as_str(), "Val3A");
+        assert_eq!(read_worksheet.get_value((4, 4)).as_str(), "Val3B");
+        assert_eq!(read_worksheet.get_value((5, 4)).as_str(), "Val3C");
+
+        // Verify Data Row Borders (example for Item 1, cell (1,2))
+        let data_style_1_2 = read_worksheet.get_style((1, 2));
+        assert_eq!(
+            data_style_1_2
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            data_style_1_2
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            data_style_1_2
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+        assert_eq!(
+            data_style_1_2
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            umya_spreadsheet::Border::BORDER_THIN
+        );
+
+        drop(temp_file);
+    }
+}
