@@ -1,7 +1,7 @@
 use crate::outline::Outline;
 use anyhow::Result;
-use umya_spreadsheet::Worksheet;
+use rust_xlsxwriter::Worksheet;
 
 pub trait Generator {
-    fn output_to_worksheet(&self, ws: &mut Worksheet, data: &Outline) -> Result<()>;
+    fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()>;
 }

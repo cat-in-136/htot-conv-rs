@@ -1,17 +1,20 @@
 use crate::generator::base::Generator;
 use crate::outline::Outline;
 use anyhow::Result;
-use umya_spreadsheet::Worksheet;
+use rust_xlsxwriter::{ColNum, Format, RowNum, Worksheet};
 
 pub struct XlsxType0Generator;
 
 impl Generator for XlsxType0Generator {
-    fn output_to_worksheet(&self, ws: &mut Worksheet, data: &Outline) -> Result<()> {
+    fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()> {
         let mut row_index = 0;
         let max_value_length = data.max_value_length();
 
+        // Define a format for cells with thin borders
+        let border_format = Format::new().set_border(rust_xlsxwriter::FormatBorder::Thin);
+
         // Header row
-        let mut header_values: Vec<String> = Vec::new();
+        let mut header_values = Vec::new();
         header_values.push(data.key_header[0].clone());
         header_values.push("Outline Level".to_string());
         header_values.extend(data.value_header.iter().map(|s| s.to_string()));
@@ -22,25 +25,12 @@ impl Generator for XlsxType0Generator {
         }
 
         for (col_index, v) in header_values.iter().enumerate() {
-            ws.get_cell_mut((col_index as u32 + 1, row_index as u32 + 1))
-                .set_value(v.clone());
-            let style = ws.get_style_mut((col_index as u32 + 1, row_index as u32 + 1));
-            style
-                .get_borders_mut()
-                .get_top_mut()
-                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-            style
-                .get_borders_mut()
-                .get_bottom_mut()
-                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-            style
-                .get_borders_mut()
-                .get_left_mut()
-                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-            style
-                .get_borders_mut()
-                .get_right_mut()
-                .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+            worksheet.write_with_format(
+                row_index as RowNum,
+                col_index as ColNum,
+                v.clone(),
+                &border_format,
+            )?;
         }
         row_index += 1;
 
@@ -51,31 +41,18 @@ impl Generator for XlsxType0Generator {
             row_values.push(item.level.to_string());
             row_values.extend(item.value.iter().map(|s| s.to_string()));
 
-            // Pad row_values with empty strings if necessary
+            // Pad header_values with empty strings if necessary
             while row_values.len() < 2 + max_value_length {
                 row_values.push("".to_string());
             }
 
             for (col_index, v) in row_values.iter().enumerate() {
-                ws.get_cell_mut((col_index as u32 + 1, row_index as u32 + 1))
-                    .set_value(v.clone());
-                let style = ws.get_style_mut((col_index as u32 + 1, row_index as u32 + 1));
-                style
-                    .get_borders_mut()
-                    .get_top_mut()
-                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-                style
-                    .get_borders_mut()
-                    .get_bottom_mut()
-                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-                style
-                    .get_borders_mut()
-                    .get_left_mut()
-                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
-                style
-                    .get_borders_mut()
-                    .get_right_mut()
-                    .set_border_style(umya_spreadsheet::Border::BORDER_THIN);
+                worksheet.write_with_format(
+                    row_index as RowNum,
+                    col_index as ColNum,
+                    v.clone(),
+                    &border_format,
+                )?;
             }
             row_index += 1;
         }
@@ -87,7 +64,8 @@ impl Generator for XlsxType0Generator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
+    use rust_xlsxwriter::Workbook;
+    use tempfile::NamedTempFile; // Added for test
 
     #[test]
     fn test_xlsx_type0_generator() {
@@ -108,19 +86,18 @@ mod tests {
 
         let generator = XlsxType0Generator;
 
-        let mut spreadsheet = umya_spreadsheet::new_file();
-        let mut worksheet = spreadsheet.get_sheet_mut(&0).unwrap();
-
+        let mut workbook = Workbook::new();
+        let mut worksheet = workbook.add_worksheet();
         generator
             .output_to_worksheet(&mut worksheet, &outline)
             .unwrap();
 
-        // Save to a temporary file
+        // Save to a temporary file using rust_xlsxwriter
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
-        umya_spreadsheet::writer::xlsx::write(&spreadsheet, &temp_path).unwrap();
+        workbook.save(&temp_path).unwrap();
 
-        // Read the file back and assert its content
+        // Read the file back and assert its content (using umya_spreadsheet as instructed)
         let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
         let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
 
