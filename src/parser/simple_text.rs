@@ -1,18 +1,25 @@
 use crate::outline::Outline;
 use anyhow::Result;
 use regex::Regex;
+use clap::Args;
 
 /// Options for configuring the `SimpleTextParser`.
+#[derive(Debug, Clone, Args)]
 pub struct SimpleTextParserOptions {
     /// The string used for indentation (e.g., "  " for two spaces, "\t" for tab).
+    #[arg(long, default_value = "\t")]
     pub indent: String,
     /// An optional delimiter string used to separate the key from its values.
+    #[arg(long)]
     pub delimiter: Option<String>,
     /// If true, empty lines in the input will be preserved as level-1 items.
+    #[arg(long)]
     pub preserve_empty_line: bool,
     /// A list of strings representing the key headers.
+    #[arg(long, action = clap::ArgAction::Append)]
     pub key_header: Vec<String>,
     /// A list of strings representing the value headers.
+    #[arg(long, action = clap::ArgAction::Append)]
     pub value_header: Vec<String>,
 }
 

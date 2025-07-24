@@ -3,7 +3,18 @@ use crate::outline::Outline;
 use anyhow::Result;
 use rust_xlsxwriter::{ColNum, Format, RowNum, Worksheet};
 
+#[derive(Debug, Clone, Default)]
+pub struct XlsxType0GeneratorOptions {
+    // No specific options for XlsxType0 in Ruby implementation
+}
+
 pub struct XlsxType0Generator;
+
+impl XlsxType0Generator {
+    pub fn new(_options: XlsxType0GeneratorOptions) -> Self {
+        XlsxType0Generator
+    }
+}
 
 impl Generator for XlsxType0Generator {
     fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()> {
@@ -84,7 +95,7 @@ mod tests {
             ],
         );
 
-        let generator = XlsxType0Generator;
+        let generator = XlsxType0Generator::new(XlsxType0GeneratorOptions {});
 
         let mut workbook = Workbook::new();
         let mut worksheet = workbook.add_worksheet();
