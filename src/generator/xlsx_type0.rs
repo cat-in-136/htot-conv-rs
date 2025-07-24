@@ -1,9 +1,10 @@
 use crate::generator::base::Generator;
 use crate::outline::Outline;
 use anyhow::Result;
+use clap::Args;
 use rust_xlsxwriter::{ColNum, Format, RowNum, Worksheet};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Args)]
 pub struct XlsxType0GeneratorOptions {
     // No specific options for XlsxType0 in Ruby implementation
 }

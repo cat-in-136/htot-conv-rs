@@ -1,7 +1,7 @@
 use crate::outline::Outline;
 use anyhow::Result;
-use regex::Regex;
 use clap::Args;
+use regex::Regex;
 
 /// Options for configuring the `SimpleTextParser`.
 #[derive(Debug, Clone, Args)]

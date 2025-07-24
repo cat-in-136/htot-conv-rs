@@ -1,10 +1,11 @@
 use clap::{Parser, Subcommand};
-use htot_conv_rs::{get_parser_types, get_generator_types};
-use std::collections::HashMap;
-use std::io::{self, Read, Write};
-use std::fs::File;
 use htot_conv_rs::cli::run_conversion;
+use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::parser::simple_text::SimpleTextParserOptions;
+use htot_conv_rs::{get_generator_types, get_parser_types};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{self, Read, Write};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,6 +29,9 @@ struct Cli {
 
     #[clap(flatten)]
     simple_text_options: Option<SimpleTextParserOptions>,
+
+    #[clap(flatten)]
+    xlsx_type0_options: Option<XlsxType0GeneratorOptions>,
 }
 
 #[derive(Subcommand)]
@@ -56,7 +60,6 @@ fn main() -> anyhow::Result<()> {
 
     let from_options: HashMap<String, String> = HashMap::new(); // Placeholder
 
-    // TODO: Stage 3: Parse generator-specific arguments
     let to_options: HashMap<String, String> = HashMap::new(); // Placeholder
 
     // Read input
@@ -84,6 +87,7 @@ fn main() -> anyhow::Result<()> {
         &from_options,
         &to_options,
         cli.simple_text_options,
+        cli.xlsx_type0_options,
     )?;
 
     Ok(())
