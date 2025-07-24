@@ -27,7 +27,7 @@ impl Generator for XlsxType0Generator {
 
         // Header row
         let mut header_values = Vec::new();
-        header_values.push(data.key_header[0].clone());
+        header_values.push(data.key_header.get(0).cloned().unwrap_or_default());
         header_values.push("Outline Level".to_string());
         header_values.extend(data.value_header.iter().map(|s| s.to_string()));
 
