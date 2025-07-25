@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
 use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::parser::simple_text::SimpleTextParserOptions;
@@ -24,26 +24,21 @@ struct Cli {
     /// Output file (default: stdout)
     output: Option<String>,
 
-    #[command(subcommand)]
-    command: Option<Commands>,
-
     #[clap(flatten)]
     simple_text_options: Option<SimpleTextParserOptions>,
 
     #[clap(flatten)]
     xlsx_type0_options: Option<XlsxType0GeneratorOptions>,
-}
 
-#[derive(Subcommand)]
-enum Commands {
     /// List available input/output types
-    ListType,
+    #[arg(short = 'l', long)]
+    list_type: bool,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    if let Some(Commands::ListType) = cli.command {
+    if cli.list_type {
         println!("type of input:");
         println!("{}", get_parser_types().join(" "));
         println!("");
