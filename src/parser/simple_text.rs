@@ -12,9 +12,6 @@ pub struct SimpleTextParserOptions {
     /// An optional delimiter string used to separate the key from its values.
     #[arg(long)]
     pub delimiter: Option<String>,
-    /// An optional delimiter string used to separate multiple values.
-    #[arg(long)]
-    pub value_delimiter: Option<String>,
     /// If true, empty lines in the input will be preserved as level-1 items.
     #[arg(long)]
     pub preserve_empty_line: bool,
@@ -37,9 +34,8 @@ impl Default for SimpleTextParserOptions {
     /// - `value_header`: empty vector
     fn default() -> Self {
         SimpleTextParserOptions {
-            indent: "\t".to_string(),
+            indent: "	".to_string(),
             delimiter: None,
-            value_delimiter: None,
             preserve_empty_line: false,
             key_header: Vec::new(),
             value_header: Vec::new(),
@@ -104,26 +100,14 @@ impl SimpleTextParser {
                 }
             }
 
-            let key;
-            let mut values = Vec::new();
-
-            if let Some(d_regexp) = &delimiter_regexp {
-                let mut parts = d_regexp.splitn(&current_line, 2);
-                key = parts.next().unwrap_or("").trim().to_string();
-                if let Some(value_part) = parts.next() {
-                    if let Some(vd) = &self.option.value_delimiter {
-                        values = value_part
-                            .split(vd.as_str())
-                            .map(|s| s.trim().to_string())
-                            .collect();
-                    } else {
-                        values = vec![value_part.trim().to_string()];
-                    }
-                }
+            let (key, values) = if let Some(d_regexp) = &delimiter_regexp {
+                let mut parts = d_regexp.split(&current_line);
+                let key = parts.next().unwrap_or("").trim().to_string();
+                let values = parts.map(|s| s.trim().to_string()).collect();
+                (key, values)
             } else {
-                key = current_line.trim().to_string();
-            }
-
+                (current_line.trim().to_string(), vec![])
+            };
             outline.add_item(&key, level, values);
         }
 
@@ -156,7 +140,7 @@ mod tests {
         let options = SimpleTextParserOptions::default();
         assert_eq!(options.indent, "\t");
         assert_eq!(options.delimiter, None);
-        assert_eq!(options.value_delimiter, None);
+
         assert_eq!(options.preserve_empty_line, false);
         assert!(options.key_header.is_empty());
         assert!(options.value_header.is_empty());
@@ -168,14 +152,13 @@ mod tests {
             indent: "  ".to_string(),
             delimiter: Some("\t".to_string()),
             value_header: vec!["H(1)".to_string(), "H(2)".to_string()],
-            value_delimiter: Some(",".to_string()),
             preserve_empty_line: true,
             ..Default::default()
         };
         let parser = SimpleTextParser::new(options);
         assert_eq!(parser.option.indent, "  ");
         assert_eq!(parser.option.delimiter, Some("\t".to_string()));
-        assert_eq!(parser.option.value_delimiter, Some(",".to_string()));
+
         assert_eq!(
             parser.option.value_header,
             vec!["H(1)".to_string(), "H(2)".to_string()]
@@ -194,7 +177,6 @@ mod tests {
             indent: "  ".to_string(),
             delimiter: Some(",".to_string()),
             value_header: vec!["H(1)".to_string(), "H(2)".to_string()],
-            value_delimiter: Some(",".to_string()),
             ..Default::default()
         };
         let parser = SimpleTextParser::new(options);
@@ -213,7 +195,6 @@ mod tests {
         let options_no_headers = SimpleTextParserOptions {
             indent: "  ".to_string(),
             delimiter: Some(",".to_string()),
-            value_delimiter: Some(",".to_string()),
             ..Default::default()
         };
         let parser_no_headers = SimpleTextParser::new(options_no_headers);
