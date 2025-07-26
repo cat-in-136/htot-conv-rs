@@ -27,7 +27,7 @@ impl Generator for XlsxType0Generator {
 
         // Header row
         let mut header_values = Vec::new();
-        header_values.push(data.key_header.get(0).cloned().unwrap_or_default());
+        header_values.push(data.key_header.first().cloned().unwrap_or_default());
         header_values.push("Outline Level".to_string());
         header_values.extend(data.value_header.iter().map(|s| s.to_string()));
 
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_xlsx_type0_generator() {
-        let mut outline = Outline::new();
+        let mut outline = Outline::default();
         outline.key_header = vec!["Key".to_string()];
         outline.value_header = vec!["Value1".to_string(), "Value2".to_string()];
         outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);

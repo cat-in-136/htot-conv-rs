@@ -13,7 +13,7 @@ pub enum OutlineError {
 /// Represents a single item within an Outline structure.
 ///
 /// An item consists of a key, a level (indentation), and a list of associated values.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct OutlineItem {
     /// The main key or title of the outline item.
     pub key: String,
@@ -68,7 +68,7 @@ impl OutlineItem {
 /// Represents an entire Outline structure.
 ///
 /// An outline consists of optional key and value headers, and a list of `OutlineItem`s.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Outline {
     /// Header for the keys, typically representing column names for different levels.
     pub key_header: Vec<String>,
@@ -81,11 +81,7 @@ pub struct Outline {
 impl Outline {
     /// Creates a new, empty `Outline`.
     pub fn new() -> Self {
-        Outline {
-            key_header: Vec::new(),
-            value_header: Vec::new(),
-            item: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Adds a new `OutlineItem` to the outline.

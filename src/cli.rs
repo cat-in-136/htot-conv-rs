@@ -8,12 +8,13 @@ use crate::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use crate::parser::simple_text::{SimpleTextParser, SimpleTextParserOptions};
 use rust_xlsxwriter::Workbook;
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_conversion(
     input_content: &str,
     output_writer: &mut dyn Write,
     from_type: &str,
     to_type: &str,
-    from_options: &HashMap<String, String>,
+    _from_options: &HashMap<String, String>,
     _to_options: &HashMap<String, String>, // Prefix with _ to ignore unused warning
     simple_text_options: Option<SimpleTextParserOptions>,
     xlsx_type0_options: Option<XlsxType0GeneratorOptions>,
@@ -30,8 +31,8 @@ pub fn run_conversion(
         "xlsx_type0" => {
             let generator = XlsxType0Generator::new(xlsx_type0_options.unwrap_or_default());
             let mut workbook = Workbook::new();
-            let mut worksheet = workbook.add_worksheet();
-            generator.output_to_worksheet(&mut worksheet, &outline)?;
+            let worksheet = workbook.add_worksheet();
+            generator.output_to_worksheet(worksheet, &outline)?;
 
             // Save the workbook to a buffer and then write to the output_writer
             let buffer = workbook.save_to_buffer()?;

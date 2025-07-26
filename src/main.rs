@@ -41,10 +41,10 @@ fn main() -> anyhow::Result<()> {
     if cli.list_type {
         println!("type of input:");
         println!("{}", get_parser_types().join(" "));
-        println!("");
+        println!();
         println!("type of output:");
         println!("{}", get_generator_types().join(" "));
-        println!("");
+        println!();
         return Ok(());
     }
 
