@@ -7,10 +7,10 @@ use regex::Regex;
 #[derive(Debug, Clone, Args)]
 pub struct SimpleTextParserOptions {
     /// The string used for indentation (e.g., "  " for two spaces, "\t" for tab).
-    #[arg(long, default_value = "\t")]
+    #[arg(long, default_value = "\t", name = "from-indent")]
     pub indent: String,
     /// An optional delimiter string used to separate the key from its values.
-    #[arg(long)]
+    #[arg(long, name = "from-delimiter")]
     pub delimiter: Option<String>,
     /// If true, empty lines in the input will be preserved as level-1 items.
     #[arg(long)]
