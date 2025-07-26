@@ -7,19 +7,19 @@ use regex::Regex;
 #[derive(Debug, Clone, Args)]
 pub struct SimpleTextParserOptions {
     /// The string used for indentation (e.g., "  " for two spaces, "\t" for tab).
-    #[arg(long, default_value = "\t", name = "from-indent")]
+    #[arg(long = "from-indent", default_value = "\t")]
     pub indent: String,
     /// An optional delimiter string used to separate the key from its values.
-    #[arg(long, name = "from-delimiter")]
+    #[arg(long = "from-delimiter")]
     pub delimiter: Option<String>,
     /// If true, empty lines in the input will be preserved as level-1 items.
-    #[arg(long)]
+    #[arg(long = "from-preserve-empty-line")]
     pub preserve_empty_line: bool,
     /// A list of strings representing the key headers.
-    #[arg(long)]
+    #[arg(long = "from-key-header")]
     pub key_header: Option<String>,
     /// A list of strings representing the value headers.
-    #[arg(long)]
+    #[arg(long = "from-value-header")]
     pub value_header: Option<String>,
 }
 
@@ -47,7 +47,7 @@ impl SimpleTextParserOptions {
     /// Converts an optional comma-separated string into a vector of trimmed strings.
     ///
     /// If the input is `Some(s)`, it splits the string `s` by commas, trims each
-    /// resulting string, and collects them into a `Vec<String>`. If the input is
+    /// resulting string, and collects them into a `Vec<String>`.
     /// `None`, it returns an empty vector.
     ///
     /// # Arguments
