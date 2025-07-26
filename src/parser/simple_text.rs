@@ -16,11 +16,11 @@ pub struct SimpleTextParserOptions {
     #[arg(long)]
     pub preserve_empty_line: bool,
     /// A list of strings representing the key headers.
-    #[arg(long, action = clap::ArgAction::Append)]
-    pub key_header: Vec<String>,
+    #[arg(long)]
+    pub key_header: Option<String>,
     /// A list of strings representing the value headers.
-    #[arg(long, action = clap::ArgAction::Append)]
-    pub value_header: Vec<String>,
+    #[arg(long)]
+    pub value_header: Option<String>,
 }
 
 impl Default for SimpleTextParserOptions {
@@ -30,16 +30,62 @@ impl Default for SimpleTextParserOptions {
     /// - `indent`: "\t" (tab)
     /// - `delimiter`: None
     /// - `preserve_empty_line`: false
-    /// - `key_header`: empty vector
-    /// - `value_header`: empty vector
+    /// - `key_header`: None
+    /// - `value_header`: None
     fn default() -> Self {
         SimpleTextParserOptions {
-            indent: "	".to_string(),
+            indent: "\t".to_string(),
             delimiter: None,
             preserve_empty_line: false,
-            key_header: Vec::new(),
-            value_header: Vec::new(),
+            key_header: None,
+            value_header: None,
         }
+    }
+}
+
+impl SimpleTextParserOptions {
+    /// Converts an optional comma-separated string into a vector of trimmed strings.
+    ///
+    /// If the input is `Some(s)`, it splits the string `s` by commas, trims each
+    /// resulting string, and collects them into a `Vec<String>`. If the input is
+    /// `None`, it returns an empty vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `arg` - An optional string that may contain comma-separated values.
+    ///
+    /// # Returns
+    ///
+    /// A vector of trimmed strings.
+    fn parse_comma_separated(arg: &Option<String>) -> Vec<String> {
+        match arg {
+            Some(s) => s.split(',').map(|s| s.trim().to_string()).collect(),
+            None => Vec::new(),
+        }
+    }
+
+    /// Returns a vector of key headers, parsed from the `key_header` option.
+    ///
+    /// This method uses the `parse_comma_separated` function to convert the
+    /// `key_header` string into a vector of strings.
+    ///
+    /// # Returns
+    ///
+    /// A vector of key headers as strings.
+    fn key_header_vec(&self) -> Vec<String> {
+        Self::parse_comma_separated(&self.key_header)
+    }
+
+    /// Returns a vector of value headers, parsed from the `value_header` option.
+    ///
+    /// This method uses the `parse_comma_separated` function to convert the
+    /// `value_header` string into a vector of strings.
+    ///
+    /// # Returns
+    ///
+    /// A vector of value headers as strings.
+    fn value_header_vec(&self) -> Vec<String> {
+        Self::parse_comma_separated(&self.value_header)
     }
 }
 
@@ -79,9 +125,14 @@ impl SimpleTextParser {
             None
         };
 
-        let mut outline = Outline::new();
-        outline.key_header = self.option.key_header.clone();
-        outline.value_header = self.option.value_header.clone();
+        let key_header = self.option.key_header_vec();
+        let value_header = self.option.value_header_vec();
+
+        let mut outline = Outline {
+            key_header,
+            value_header,
+            ..Outline::default()
+        };
 
         for line in input.lines() {
             let trimmed_line = line.trim();
@@ -142,8 +193,8 @@ mod tests {
         assert_eq!(options.delimiter, None);
 
         assert_eq!(options.preserve_empty_line, false);
-        assert!(options.key_header.is_empty());
-        assert!(options.value_header.is_empty());
+        assert_eq!(options.key_header, None);
+        assert_eq!(options.value_header, None);
     }
 
     #[test]
@@ -151,7 +202,7 @@ mod tests {
         let options = SimpleTextParserOptions {
             indent: "  ".to_string(),
             delimiter: Some("\t".to_string()),
-            value_header: vec!["H(1)".to_string(), "H(2)".to_string()],
+            value_header: Some("H(1),H(2)".to_string()),
             preserve_empty_line: true,
             ..Default::default()
         };
@@ -159,10 +210,7 @@ mod tests {
         assert_eq!(parser.option.indent, "  ");
         assert_eq!(parser.option.delimiter, Some("\t".to_string()));
 
-        assert_eq!(
-            parser.option.value_header,
-            vec!["H(1)".to_string(), "H(2)".to_string()]
-        );
+        assert_eq!(parser.option.value_header, Some("H(1),H(2)".to_string()));
         assert_eq!(parser.option.preserve_empty_line, true);
     }
 
@@ -176,7 +224,7 @@ mod tests {
         let options = SimpleTextParserOptions {
             indent: "  ".to_string(),
             delimiter: Some(",".to_string()),
-            value_header: vec!["H(1)".to_string(), "H(2)".to_string()],
+            value_header: Some("H(1),H(2)".to_string()),
             ..Default::default()
         };
         let parser = SimpleTextParser::new(options);
@@ -184,6 +232,7 @@ mod tests {
 
         let mut expected_outline = reference_outline();
         expected_outline.key_header = Vec::new();
+        expected_outline.value_header = vec!["H(1)".to_string(), "H(2)".to_string()];
         assert_eq!(outline, expected_outline);
 
         let input_no_headers = r#"1           , 1(1),     1(2)
@@ -212,8 +261,8 @@ mod tests {
         let options_preserve_empty = SimpleTextParserOptions {
             indent: "  ".to_string(),
             preserve_empty_line: true,
-            key_header: vec!["H1".to_string()],
-            value_header: vec!["V1".to_string()],
+            key_header: Some("H1".to_string()),
+            value_header: Some("V1".to_string()),
             ..Default::default()
         };
         let parser_preserve_empty = SimpleTextParser::new(options_preserve_empty);
@@ -226,6 +275,28 @@ mod tests {
         expected_outline_preserve_empty.add_item("", 1, Vec::new());
         expected_outline_preserve_empty.add_item("1.1", 2, Vec::new());
         assert_eq!(outline_preserve_empty, expected_outline_preserve_empty);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_text_parser_header_parsing() -> Result<(), anyhow::Error> {
+        let options = SimpleTextParserOptions {
+            key_header: Some("H1,H2,H3".to_string()),
+            value_header: Some("V1,V2".to_string()),
+            ..Default::default()
+        };
+        let parser = SimpleTextParser::new(options);
+        let outline = parser.parse("")?;
+
+        assert_eq!(
+            outline.key_header,
+            vec!["H1".to_string(), "H2".to_string(), "H3".to_string()]
+        );
+        assert_eq!(
+            outline.value_header,
+            vec!["V1".to_string(), "V2".to_string()]
+        );
 
         Ok(())
     }
