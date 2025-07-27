@@ -1,11 +1,14 @@
 use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
 use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
+use htot_conv_rs::generator::GeneratorOptions;
+use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::simple_text::SimpleTextParserOptions;
+use htot_conv_rs::parser::ParserOptions;
 use htot_conv_rs::{get_generator_types, get_parser_types};
-use std::collections::HashMap;
+
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -15,20 +18,37 @@ struct Cli {
     from_type: String,
 
     /// Type of output (e.g., xlsx_type0, xlsx_type1)
-    #[arg(short = 't', long, value_name = "TYPE", default_value = "xlsx_type2")]
+    #[arg(short = 't', long, value_name = "TYPE", default_value = "xlsx_type0")]
     to_type: String,
+
+    /// The string used for indentation (e.g., "  " for two spaces, "\t" for tab).
+    #[arg(long = "from-indent", default_value = "\t")]
+    indent: String,
+    /// An optional delimiter string used to separate the key from its values.
+    #[arg(long = "from-delimiter")]
+    delimiter: Option<String>,
+    /// If true, empty lines in the input will be preserved as level-1 items.
+    #[arg(long = "from-preserve-empty-line")]
+    preserve_empty_line: bool,
+    /// A list of strings representing the key headers.
+    #[arg(long = "from-key-header")]
+    key_header: Option<String>,
+    /// A list of strings representing the value headers.
+    #[arg(long = "from-value-header")]
+    value_header: Option<String>,
+
+    /// Glob pattern for dir_tree parser (e.g., "**/*", "*.txt").
+    #[arg(long = "from-dir-tree-glob-pattern", default_value = "**/*")]
+    from_dir_tree_glob_pattern: Option<String>,
+    /// Directory indicator for dir_tree parser (e.g., "/").
+    #[arg(long = "from-dir-tree-dir-indicator")]
+    from_dir_tree_dir_indicator: Option<String>,
 
     /// Input file (default: stdin)
     input: Option<String>,
 
     /// Output file (default: stdout)
     output: Option<String>,
-
-    #[clap(flatten)]
-    simple_text_options: Option<SimpleTextParserOptions>,
-
-    #[clap(flatten)]
-    xlsx_type0_options: Option<XlsxType0GeneratorOptions>,
 
     /// List available input/output types
     #[arg(short = 'l', long)]
@@ -48,25 +68,8 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let from_type = cli.from_type;
-    let to_type = cli.to_type;
-    let input_path = cli.input;
+    let input_path_option = cli.input;
     let output_path = cli.output;
-
-    let from_options: HashMap<String, String> = HashMap::new(); // Placeholder
-
-    let to_options: HashMap<String, String> = HashMap::new(); // Placeholder
-
-    // Read input
-    let mut input_content = String::new();
-    match input_path {
-        Some(path) if path != "-" => {
-            File::open(path)?.read_to_string(&mut input_content)?;
-        }
-        _ => {
-            io::stdin().read_to_string(&mut input_content)?;
-        }
-    }
 
     // Prepare output writer
     let mut output_writer: Box<dyn Write> = match output_path {
@@ -74,15 +77,31 @@ fn main() -> anyhow::Result<()> {
         _ => Box::new(io::stdout()),
     };
 
+    let from_options = match cli.from_type.as_str() {
+        "simple_text" => ParserOptions::SimpleText(SimpleTextParserOptions {
+            indent: cli.indent,
+            delimiter: cli.delimiter,
+            preserve_empty_line: cli.preserve_empty_line,
+            key_header: cli.key_header,
+            value_header: cli.value_header,
+        }),
+        "dir_tree" => ParserOptions::DirTree(DirTreeParserOptions {
+            key_header: cli.key_header,
+            glob_pattern: cli.from_dir_tree_glob_pattern,
+            dir_indicator: cli.from_dir_tree_dir_indicator,
+        }),
+        _ => panic!("Unsupported from_type: {}", cli.from_type),
+    };
+    let to_options = match cli.to_type.as_str() {
+        "xlsx_type0" => GeneratorOptions::XlsxType0(XlsxType0GeneratorOptions {}),
+        _ => panic!("Unsupported to_type: {}", cli.to_type),
+    };
+
     run_conversion(
-        &input_content,
+        &input_path_option,
         &mut output_writer,
-        &from_type,
-        &to_type,
-        &from_options,
-        &to_options,
-        cli.simple_text_options,
-        cli.xlsx_type0_options,
+        from_options,
+        to_options,
     )?;
 
     Ok(())

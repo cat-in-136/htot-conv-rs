@@ -1,35 +1,52 @@
-use anyhow::{anyhow, Result};
-use std::collections::HashMap;
-use std::io::Write;
+use anyhow::Result;
+use std::io::{Read, Write};
 
 use crate::generator::base::Generator;
 use crate::generator::xlsx_type0::XlsxType0Generator;
-use crate::generator::xlsx_type0::XlsxType0GeneratorOptions;
-use crate::parser::simple_text::{SimpleTextParser, SimpleTextParserOptions};
+use crate::generator::GeneratorOptions;
+use crate::parser::dir_tree::DirTreeParser;
+use crate::parser::simple_text::SimpleTextParser;
+use crate::parser::ParserOptions;
 use rust_xlsxwriter::Workbook;
 
-#[allow(clippy::too_many_arguments)]
 pub fn run_conversion(
-    input_content: &str,
+    input_path_option: &Option<String>,
     output_writer: &mut dyn Write,
-    from_type: &str,
-    to_type: &str,
-    _from_options: &HashMap<String, String>,
-    _to_options: &HashMap<String, String>, // Prefix with _ to ignore unused warning
-    simple_text_options: Option<SimpleTextParserOptions>,
-    xlsx_type0_options: Option<XlsxType0GeneratorOptions>,
+    from_options: ParserOptions,
+    to_options: GeneratorOptions,
 ) -> Result<()> {
-    let outline = match from_type {
-        "simple_text" => {
-            let parser = SimpleTextParser::new(simple_text_options.unwrap_or_default());
-            parser.parse(input_content)?
+    let outline = match from_options {
+        ParserOptions::SimpleText(options) => {
+            let input_content = match input_path_option {
+                Some(path) if path != "-" => std::fs::read_to_string(path)?,
+                _ => {
+                    let mut buf = String::new();
+                    std::io::stdin().read_to_string(&mut buf)?;
+                    buf
+                }
+            };
+            let parser = SimpleTextParser::new(options);
+            parser.parse(&input_content)?
         }
-        _ => return Err(anyhow!("Unsupported parser type: {}", from_type)),
+        ParserOptions::DirTree(options) => {
+            let path = match input_path_option {
+                Some(p) => std::path::PathBuf::from(p),
+                None => anyhow::bail!("Input path is required for dir_tree parser."),
+            };
+            if !path.is_dir() {
+                anyhow::bail!(
+                    "Input path \'{}\' is not a valid directory for dir_tree parser.",
+                    path.display()
+                );
+            }
+            let parser = DirTreeParser::new(options);
+            parser.parse(&path)?
+        }
     };
 
-    match to_type {
-        "xlsx_type0" => {
-            let generator = XlsxType0Generator::new(xlsx_type0_options.unwrap_or_default());
+    match to_options {
+        GeneratorOptions::XlsxType0(options) => {
+            let generator = XlsxType0Generator::new(options);
             let mut workbook = Workbook::new();
             let worksheet = workbook.add_worksheet();
             generator.output_to_worksheet(worksheet, &outline)?;
@@ -38,8 +55,7 @@ pub fn run_conversion(
             let buffer = workbook.save_to_buffer()?;
             output_writer.write_all(&buffer)?;
         }
-        _ => return Err(anyhow!("Unsupported generator type: {}", to_type)),
-    }
+    };
 
     Ok(())
 }
