@@ -5,6 +5,7 @@ use crate::generator::base::Generator;
 use crate::generator::xlsx_type0::XlsxType0Generator;
 use crate::generator::GeneratorOptions;
 use crate::parser::dir_tree::DirTreeParser;
+use crate::parser::html_list::HtmlListParser;
 use crate::parser::simple_text::SimpleTextParser;
 use crate::parser::ParserOptions;
 use rust_xlsxwriter::Workbook;
@@ -35,12 +36,24 @@ pub fn run_conversion(
             };
             if !path.is_dir() {
                 anyhow::bail!(
-                    "Input path \'{}\' is not a valid directory for dir_tree parser.",
+                    "Input path '{}' is not a valid directory for dir_tree parser.",
                     path.display()
                 );
             }
             let parser = DirTreeParser::new(options);
             parser.parse(&path)?
+        }
+        ParserOptions::HtmlList(options) => {
+            let input_content = match input_path_option {
+                Some(path) if path != "-" => std::fs::read_to_string(path)?,
+                _ => {
+                    let mut buf = String::new();
+                    std::io::stdin().read_to_string(&mut buf)?;
+                    buf
+                }
+            };
+            let parser = HtmlListParser::new(options);
+            parser.parse(&input_content)?
         }
     };
 
