@@ -73,7 +73,7 @@ impl OpmlParser {
         let mut text = String::new();
         let mut item_values = vec![String::new(); outline.value_header.len()];
 
-        for attr in attributes.clone().into_iter() {
+        for attr in attributes.clone() {
             let attr = attr?;
             let key = String::from_utf8_lossy(attr.key.into_inner()).into_owned();
             let value = attr.unescape_value()?.into_owned();

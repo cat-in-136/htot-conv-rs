@@ -76,22 +76,22 @@ impl XlsxType2Generator {
             // Apply borders based on Ruby logic
             for level in 1..=max_level {
                 let mut format_for_level = Format::new();
-                if (level as u32) <= item.level {
+                if level <= item.level {
                     format_for_level = format_for_level.set_border_left(FormatBorder::Thin);
                 }
-                if ((level as u32) < item.level) || ((level as u32) == max_level) {
+                if (level < item.level) || (level == max_level) {
                     format_for_level = format_for_level.set_border_right(FormatBorder::Thin);
                 }
-                if ((level as u32) >= item.level) || (item_index == 0) {
+                if (level >= item.level) || (item_index == 0) {
                     format_for_level = format_for_level.set_border_top(FormatBorder::Thin);
                 }
-                if ((level as u32) > item.level) || (item_index == self.outline.item.len() - 1) {
+                if (level > item.level) || (item_index == self.outline.item.len() - 1) {
                     format_for_level = format_for_level.set_border_bottom(FormatBorder::Thin);
                 }
                 worksheet.write_string_with_format(
                     row_index,
                     (level - 1) as u16,
-                    if (level as u32) == item.level {
+                    if level == item.level {
                         item.key.clone()
                     } else {
                         "".to_string()
@@ -148,14 +148,14 @@ impl XlsxType2Generator {
                 let max_level = self.outline.max_level();
 
                 for (item_index, item) in self.outline.item.iter().enumerate() {
-                    if (item.level as u32) < max_level {
+                    if item.level < max_level {
                         let text = &item.key;
                         worksheet.merge_range(
                             (item_index + 1) as u32,
                             (item.level - 1) as u16,
                             (item_index + 1) as u32,
                             (max_level - 1) as u16,
-                            &text,
+                            text,
                             &format_for_integrate,
                         )?;
                     }
@@ -167,7 +167,7 @@ impl XlsxType2Generator {
                     let mut max_row_index = min_row_index;
 
                     for i in (item_index + 1)..self.outline.item.len() {
-                        if (self.outline.item[i].level as u32) <= item.level {
+                        if self.outline.item[i].level <= item.level {
                             break;
                         }
                         max_row_index = (i + 1) as u32;
@@ -180,7 +180,7 @@ impl XlsxType2Generator {
                             (item.level - 1) as u16,
                             max_row_index,
                             (item.level - 1) as u16,
-                            &text,
+                            text,
                             &format_for_integrate,
                         )?;
                     }

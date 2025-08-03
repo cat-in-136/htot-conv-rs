@@ -68,7 +68,7 @@ impl MspdiParser {
                         if let Some(last_tag) = breadcrumb.last() {
                             current_task_values
                                 .entry(last_tag.clone())
-                                .or_insert_with(String::new)
+                                .or_default()
                                 .push_str(&text);
                         }
                     }
