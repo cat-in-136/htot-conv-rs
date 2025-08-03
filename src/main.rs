@@ -1,6 +1,7 @@
 use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
 use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
+use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
 use htot_conv_rs::generator::GeneratorOptions;
 use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::html_list::HtmlListParserOptions;
@@ -64,6 +65,10 @@ struct Cli {
     #[arg(long = "from-opml-value-header", default_values_t = Vec::<String>::new())]
     from_opml_value_header: Vec<String>,
 
+    /// Group rows in XLSX output (for xlsx_type1).
+    #[arg(long = "to-outline-rows", default_value_t = false)]
+    to_outline_rows: bool,
+
     /// Input file (default: stdin)
     input: Option<String>,
 
@@ -125,6 +130,9 @@ fn main() -> anyhow::Result<()> {
     };
     let to_options = match cli.to_type.as_str() {
         "xlsx_type0" => GeneratorOptions::XlsxType0(XlsxType0GeneratorOptions {}),
+        "xlsx_type1" => GeneratorOptions::XlsxType1(XlsxType1GeneratorOptions {
+            outline_rows: cli.to_outline_rows,
+        }),
         _ => panic!("Unsupported to_type: {}", cli.to_type),
     };
 

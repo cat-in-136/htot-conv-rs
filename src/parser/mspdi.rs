@@ -1,5 +1,5 @@
-use anyhow::Result;
 use anyhow::anyhow;
+use anyhow::Result;
 use clap::Args;
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -40,7 +40,13 @@ impl MspdiParser {
 
         loop {
             match reader.read_event_into(&mut buf) {
-                Err(e) => return Err(anyhow!("Error at position {}: {:?}", reader.buffer_position(), e)),
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Error at position {}: {:?}",
+                        reader.buffer_position(),
+                        e
+                    ))
+                }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(e)) => {
                     let tag_name = String::from_utf8_lossy(e.name().into_inner()).into_owned();
@@ -75,11 +81,7 @@ impl MspdiParser {
         Ok(outline)
     }
 
-    fn generate_outline_item(
-        &self,
-        outline: &mut Outline,
-        values: &HashMap<String, String>,
-    ) {
+    fn generate_outline_item(&self, outline: &mut Outline, values: &HashMap<String, String>) {
         let mut text = String::new();
         let mut level = 1;
         let mut item_values: Vec<String> = vec!["".to_string(); outline.value_header.len()];

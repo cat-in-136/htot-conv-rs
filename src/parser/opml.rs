@@ -71,7 +71,7 @@ impl OpmlParser {
         level: u32,
     ) -> Result<()> {
         let mut text = String::new();
-        let mut item_values  = vec![String::new(); outline.value_header.len()];
+        let mut item_values = vec![String::new(); outline.value_header.len()];
 
         for attr in attributes.clone().into_iter() {
             let attr = attr?;
@@ -80,10 +80,8 @@ impl OpmlParser {
 
             if key == "text" {
                 text = value.trim().to_string();
-            } else {
-                if let Some(value_pos) = outline.value_header.iter().position(|x| x == &key) {
-                    item_values[value_pos] = value.to_string();
-                }
+            } else if let Some(value_pos) = outline.value_header.iter().position(|x| x == &key) {
+                item_values[value_pos] = value.to_string();
             }
         }
 
@@ -113,7 +111,10 @@ mod tests {
     </body>
 </opml>
 "#;
-        let options = OpmlParserOptions { key_header: vec![], value_header: vec![] };
+        let options = OpmlParserOptions {
+            key_header: vec![],
+            value_header: vec![],
+        };
         let parser = OpmlParser::new(options);
         let outline = parser.parse(xml_input).unwrap();
 
@@ -138,7 +139,10 @@ mod tests {
     </body>
 </opml>
 "#;
-        let options = OpmlParserOptions { key_header: vec![], value_header: vec!["due".to_string(), "priority".to_string()] };
+        let options = OpmlParserOptions {
+            key_header: vec![],
+            value_header: vec!["due".to_string(), "priority".to_string()],
+        };
         let parser = OpmlParser::new(options);
         let outline = parser.parse(xml_input).unwrap();
 
