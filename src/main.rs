@@ -39,8 +39,8 @@ struct Cli {
     #[arg(long = "from-key-header")]
     key_header: Option<String>,
     /// A list of strings representing the value headers.
-    #[arg(long = "from-value-header", default_values_t = Vec::<String>::new())]
-    value_header: Vec<String>,
+    #[arg(long = "from-value-header")]
+    value_header: Option<String>,
 
     /// Glob pattern for dir_tree parser (e.g., "**/*", "*.txt").
     #[arg(long = "from-dir-tree-glob-pattern", default_value = "**/*")]
@@ -112,8 +112,8 @@ fn main() -> anyhow::Result<()> {
             indent: cli.indent,
             delimiter: cli.delimiter,
             preserve_empty_line: cli.preserve_empty_line,
-            key_header: cli.key_header.map(|s| vec![s]),
-            value_header: Some(cli.value_header),
+            key_header: cli.key_header,
+            value_header: cli.value_header,
         }),
         "dir_tree" => ParserOptions::DirTree(DirTreeParserOptions {
             key_header: cli.key_header,

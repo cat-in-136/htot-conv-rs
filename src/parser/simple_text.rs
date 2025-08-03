@@ -8,8 +8,8 @@ pub struct SimpleTextParserOptions {
     pub indent: String,
     pub delimiter: Option<String>,
     pub preserve_empty_line: bool,
-    pub key_header: Option<Vec<String>>,
-    pub value_header: Option<Vec<String>>,
+    pub key_header: Option<String>,
+    pub value_header: Option<String>,
 }
 
 impl Default for SimpleTextParserOptions {
@@ -33,7 +33,25 @@ impl Default for SimpleTextParserOptions {
 }
 
 impl SimpleTextParserOptions {
-    
+    /// Converts an optional comma-separated string into a vector of trimmed strings.
+    ///
+    /// If the input is `Some(s)`, it splits the string `s` by commas, trims each
+    /// resulting string, and collects them into a `Vec<String>`.
+    /// `None`, it returns an empty vector.
+    ///
+    /// # Arguments
+    ///
+    /// * `arg` - An optional string that may contain comma-separated values.
+    ///
+    /// # Returns
+    ///
+    /// A vector of trimmed strings.
+    fn parse_comma_separated(arg: &Option<String>) -> Vec<String> {
+        match arg {
+            Some(s) => s.split(',').map(|s| s.trim().to_string()).collect(),
+            None => Vec::new(),
+        }
+    }
 
     /// Returns a vector of key headers, parsed from the `key_header` option.
     ///
@@ -44,7 +62,7 @@ impl SimpleTextParserOptions {
     ///
     /// A vector of key headers as strings.
     fn key_header_vec(&self) -> Vec<String> {
-        self.key_header.clone().unwrap_or_default()
+        Self::parse_comma_separated(&self.key_header)
     }
 
     /// Returns a vector of value headers, parsed from the `value_header` option.
@@ -56,7 +74,7 @@ impl SimpleTextParserOptions {
     ///
     /// A vector of value headers as strings.
     fn value_header_vec(&self) -> Vec<String> {
-        self.value_header.clone().unwrap_or_default()
+        Self::parse_comma_separated(&self.value_header)
     }
 }
 
@@ -173,7 +191,7 @@ mod tests {
         let options = SimpleTextParserOptions {
             indent: "  ".to_string(),
             delimiter: Some("\t".to_string()),
-            value_header: Some(vec!["H(1)".to_string(),"H(2)".to_string()]),
+            value_header: Some("H(1),H(2)".to_string()),
             preserve_empty_line: true,
             ..Default::default()
         };
@@ -181,7 +199,7 @@ mod tests {
         assert_eq!(parser.option.indent, "  ");
         assert_eq!(parser.option.delimiter, Some("\t".to_string()));
 
-        assert_eq!(parser.option.value_header, Some(vec!["H(1)".to_string(),"H(2)".to_string()]));
+        assert_eq!(parser.option.value_header, Some("H(1),H(2)".to_string()));
         assert_eq!(parser.option.preserve_empty_line, true);
     }
 
@@ -195,7 +213,7 @@ mod tests {
         let options = SimpleTextParserOptions {
             indent: "  ".to_string(),
             delimiter: Some(",".to_string()),
-            value_header: Some(vec!["H(1)".to_string(),"H(2)".to_string()]),
+            value_header: Some("H(1),H(2)".to_string()),
             ..Default::default()
         };
         let parser = SimpleTextParser::new(options);
@@ -232,8 +250,8 @@ mod tests {
         let options_preserve_empty = SimpleTextParserOptions {
             indent: "  ".to_string(),
             preserve_empty_line: true,
-            key_header: Some(vec!["H1".to_string()]),
-            value_header: Some(vec!["V1".to_string()]),
+            key_header: Some("H1".to_string()),
+            value_header: Some("V1".to_string()),
             ..Default::default()
         };
         let parser_preserve_empty = SimpleTextParser::new(options_preserve_empty);
@@ -253,8 +271,8 @@ mod tests {
     #[test]
     fn test_simple_text_parser_header_parsing() -> Result<(), anyhow::Error> {
         let options = SimpleTextParserOptions {
-            key_header: Some("H1,H2,H3".split(',').map(|s| s.to_string()).collect()),
-            value_header: Some("V1,V2".split(',').map(|s| s.to_string()).collect()),
+            key_header: Some("H1,H2,H3".to_string()),
+            value_header: Some("V1,V2".to_string()),
             ..Default::default()
         };
         let parser = SimpleTextParser::new(options);
