@@ -3,6 +3,7 @@ use htot_conv_rs::cli::run_conversion;
 use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type2::XlsxType2GeneratorOptions;
+use htot_conv_rs::generator::xlsx_type3::XlsxType3GeneratorOptions;
 use htot_conv_rs::generator::GeneratorOptions;
 use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::html_list::HtmlListParserOptions;
@@ -72,7 +73,7 @@ struct Cli {
 
     /// Integrate cells in XLSX output (for xlsx_type2).
     #[arg(long = "to-integrate-cells")]
-    to_integrate_cells: Option<htot_conv_rs::generator::xlsx_type2::IntegrateCellsOption>,
+    to_integrate_cells: Option<htot_conv_rs::generator::base::IntegrateCellsOption>,
 
     /// Input file (default: stdin)
     input: Option<String>,
@@ -139,6 +140,10 @@ fn main() -> anyhow::Result<()> {
             outline_rows: cli.to_outline_rows,
         }),
         "xlsx_type2" => GeneratorOptions::XlsxType2(XlsxType2GeneratorOptions {
+            outline_rows: cli.to_outline_rows,
+            integrate_cells: cli.to_integrate_cells,
+        }),
+        "xlsx_type3" => GeneratorOptions::XlsxType3(XlsxType3GeneratorOptions {
             outline_rows: cli.to_outline_rows,
             integrate_cells: cli.to_integrate_cells,
         }),

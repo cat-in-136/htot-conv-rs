@@ -4,21 +4,21 @@ use clap::Args;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 
 #[derive(Debug, Clone, Args)]
-pub struct XlsxType2GeneratorOptions {
+pub struct XlsxType3GeneratorOptions {
     /// group rows (default: no)
     #[arg(long, default_value_t = false)]
     pub outline_rows: bool,
     pub integrate_cells: Option<crate::generator::base::IntegrateCellsOption>,
 }
 
-pub struct XlsxType2Generator {
+pub struct XlsxType3Generator {
     outline: Outline,
-    options: XlsxType2GeneratorOptions,
+    options: XlsxType3GeneratorOptions,
 }
 
-impl XlsxType2Generator {
-    pub fn new(outline: Outline, options: XlsxType2GeneratorOptions) -> Self {
-        XlsxType2Generator { outline, options }
+impl XlsxType3Generator {
+    pub fn new(outline: Outline, options: XlsxType3GeneratorOptions) -> Self {
+        XlsxType3Generator { outline, options }
     }
 
     pub fn output_to_worksheet(&self, worksheet: &mut Worksheet) -> Result<()> {
@@ -29,24 +29,44 @@ impl XlsxType2Generator {
         let header_format = Format::new().set_border(FormatBorder::Thin);
         let item_format = Format::new().set_border(FormatBorder::Thin);
 
-        // Write key header and value headers
+        // Write key header and value headers for XlsxType3
+        // Key Header 0 (A1)
         let mut col_index = 0;
-        for level in 1..=max_level {
-            let header_text = self
-                .outline
-                .key_header
-                .get((level - 1) as usize)
-                .map_or("".to_string(), |s| s.clone());
-            worksheet.write_string_with_format(
-                row_index,
-                col_index as u16,
-                &header_text,
-                &header_format,
-            )?;
+        let header_text_key = self
+            .outline
+            .key_header
+            .get(0)
+            .map_or("".to_string(), |s| s.clone());
+        worksheet.write_string_with_format(
+            row_index,
+            col_index,
+            &header_text_key,
+            &header_format,
+        )?;
+        col_index += 1;
+
+        // Value Header 0 (B1)
+        let header_text_val0 = self
+            .outline
+            .value_header
+            .get(0)
+            .map_or("".to_string(), |s| s.clone());
+        worksheet.write_string_with_format(
+            row_index,
+            col_index,
+            &header_text_val0,
+            &header_format,
+        )?;
+        col_index += 1;
+
+        // Empty cell
+        while col_index <= max_level as _ {
+            worksheet.write_string_with_format(row_index, col_index as u16, "", &header_format)?;
             col_index += 1;
         }
 
-        for i in 0..max_value_length {
+        // Value Header
+        for i in 1..max_value_length {
             let header_text = self
                 .outline
                 .value_header
@@ -65,15 +85,13 @@ impl XlsxType2Generator {
         let item_first_row_index = row_index;
 
         for (item_index, item) in self.outline.item.iter().enumerate() {
-            let _key_col_index = item.level - 1;
-
             // Apply borders based on Ruby logic
-            for level in 1..=max_level {
+            for level in 1..=(max_level + 1) {
                 let mut format_for_level = Format::new();
                 if level <= item.level {
                     format_for_level = format_for_level.set_border_left(FormatBorder::Thin);
                 }
-                if (level < item.level) || (level == max_level) {
+                if (level < item.level) || (level == (max_level + 1)) {
                     format_for_level = format_for_level.set_border_right(FormatBorder::Thin);
                 }
                 if (level >= item.level) || (item_index == 0) {
@@ -94,7 +112,16 @@ impl XlsxType2Generator {
                 )?;
             }
 
-            for i in 0..max_value_length {
+            if let Some(value) = item.value.get(0) {
+                worksheet.write_string_with_format(
+                    row_index,
+                    item.level as u16,
+                    value,
+                    &item_format,
+                )?;
+            }
+
+            for i in 1..max_value_length {
                 if let Some(value) = item.value.get(i) {
                     worksheet.write_string_with_format(
                         row_index,
@@ -111,6 +138,7 @@ impl XlsxType2Generator {
                     )?;
                 }
             }
+
             row_index += 1;
         }
 
@@ -132,55 +160,66 @@ impl XlsxType2Generator {
         }
 
         // Integrate cells
-
         let mut format_for_integrate = Format::new();
         format_for_integrate = format_for_integrate.set_border_top(FormatBorder::Thin);
         format_for_integrate = format_for_integrate.set_border_left(FormatBorder::Thin);
 
-        match self.options.integrate_cells {
-            Some(crate::generator::base::IntegrateCellsOption::Colspan) => {
-                let max_level = self.outline.max_level();
-
-                for (item_index, item) in self.outline.item.iter().enumerate() {
-                    if item.level < max_level {
-                        let text = &item.key;
-                        worksheet.merge_range(
-                            (item_index + 1) as u32,
-                            (item.level - 1) as u16,
-                            (item_index + 1) as u32,
-                            (max_level - 1) as u16,
-                            text,
-                            &format_for_integrate,
-                        )?;
-                    }
+        if self.options.integrate_cells
+            == Some(crate::generator::base::IntegrateCellsOption::Colspan)
+            || self.options.integrate_cells
+                == Some(crate::generator::base::IntegrateCellsOption::Both)
+        {
+            if max_level > 1 {
+                let text = self
+                    .outline
+                    .value_header
+                    .get(0)
+                    .map_or("".to_string(), |s| s.clone());
+                worksheet.merge_range(0, 1, 0, max_level as u16, &text, &format_for_integrate)?;
+            }
+            for (item_index, item) in self.outline.item.iter().enumerate() {
+                if item.level < max_level {
+                    let text = item.value.get(0).map_or("".to_string(), |s| s.clone());
+                    worksheet.merge_range(
+                        item_first_row_index + item_index as u32,
+                        item.level as u16,
+                        item_first_row_index + item_index as u32,
+                        max_level as u16,
+                        &text,
+                        &format_for_integrate,
+                    )?;
                 }
             }
-            Some(crate::generator::base::IntegrateCellsOption::Rowspan) => {
-                for (item_index, item) in self.outline.item.iter().enumerate() {
-                    let min_row_index = (item_index + 1) as u32;
-                    let mut max_row_index = min_row_index;
+        }
+        if self.options.integrate_cells
+            == Some(crate::generator::base::IntegrateCellsOption::Rowspan)
+            || self.options.integrate_cells
+                == Some(crate::generator::base::IntegrateCellsOption::Both)
+        {
+            for (item_index, item) in self.outline.item.iter().enumerate() {
+                let min_row_index = item_first_row_index + item_index as u32;
+                let mut max_row_index = min_row_index;
 
-                    for i in (item_index + 1)..self.outline.item.len() {
-                        if self.outline.item[i].level <= item.level {
-                            break;
-                        }
-                        max_row_index = (i + 1) as u32;
+                for (item_index2, item2) in
+                    self.outline.item.iter().enumerate().skip(item_index + 1)
+                {
+                    if item2.level <= item.level {
+                        break;
                     }
+                    max_row_index = item_first_row_index + item_index2 as u32;
+                }
 
-                    if min_row_index != max_row_index {
-                        let text = &item.key;
-                        worksheet.merge_range(
-                            min_row_index,
-                            (item.level - 1) as u16,
-                            max_row_index,
-                            (item.level - 1) as u16,
-                            text,
-                            &format_for_integrate,
-                        )?;
-                    }
+                if min_row_index != max_row_index {
+                    worksheet.merge_range(
+                        min_row_index,
+                        item.level as u16 - 1,
+                        max_row_index,
+                        item.level as u16 - 1,
+                        &item.key.clone(),
+                        &format_for_integrate,
+                    )?;
                 }
             }
-            _ => {}
         }
 
         Ok(())
@@ -227,17 +266,17 @@ mod tests {
     use umya_spreadsheet::reader::xlsx::read as read_xlsx;
 
     #[test]
-    fn test_xlsx_type2_generator_basic() -> Result<()> {
+    fn test_xlsx_type3_generator_basic() -> Result<()> {
         let mut outline = Outline::default();
-        outline.key_header = vec!["Key Header 1".to_string(), "Key Header 2".to_string()];
+        outline.key_header = vec!["Key Header 1".to_string()];
         outline.value_header = vec!["Value Header 1".to_string(), "Value Header 2".to_string()];
         outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(
+        let generator = XlsxType3Generator::new(
             outline,
-            XlsxType2GeneratorOptions {
+            XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: None,
             },
@@ -256,13 +295,12 @@ mod tests {
 
         // Verify Header Row
         assert_eq!(read_worksheet.get_value((1, 1)).as_str(), "Key Header 1");
-        assert_eq!(read_worksheet.get_value((2, 1)).as_str(), "Key Header 2");
-        assert_eq!(read_worksheet.get_value((3, 1)).as_str(), "Value Header 1");
+        assert_eq!(read_worksheet.get_value((2, 1)).as_str(), "Value Header 1");
         assert_eq!(read_worksheet.get_value((4, 1)).as_str(), "Value Header 2");
 
         // Verify Data Row 1 (Item 1)
         assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
-        assert_eq!(read_worksheet.get_value((3, 2)).as_str(), "Val1A");
+        assert_eq!(read_worksheet.get_value((2, 2)).as_str(), "Val1A");
         assert_eq!(read_worksheet.get_value((4, 2)).as_str(), "Val1B");
 
         // Verify Data Row 2 (Item 1.1)
@@ -271,14 +309,14 @@ mod tests {
 
         // Verify Data Row 3 (Item 2)
         assert_eq!(read_worksheet.get_value((1, 4)).as_str(), "Item 2");
-        assert_eq!(read_worksheet.get_value((3, 4)).as_str(), "Val2A");
+        assert_eq!(read_worksheet.get_value((2, 4)).as_str(), "Val2A");
 
         drop(temp_file);
         Ok(())
     }
 
     #[test]
-    fn test_xlsx_type2_generator_outline_rows() -> Result<()> {
+    fn test_xlsx_type3_generator_outline_rows() -> Result<()> {
         let mut outline = Outline::default();
         outline.add_item("Item 1", 1, vec![]);
         outline.add_item("Subitem 1.1", 2, vec![]);
@@ -286,9 +324,9 @@ mod tests {
         outline.add_item("Item 2", 1, vec![]);
         outline.add_item("Subitem 2.1", 2, vec![]);
 
-        let generator = XlsxType2Generator::new(
+        let generator = XlsxType3Generator::new(
             outline,
-            XlsxType2GeneratorOptions {
+            XlsxType3GeneratorOptions {
                 outline_rows: true,
                 integrate_cells: None,
             },
@@ -318,22 +356,22 @@ mod tests {
     }
 
     #[test]
-    fn test_xlsx_type2_generator_integrate_cells_colspan() -> Result<()> {
+    fn test_xlsx_type3_generator_integrate_cells_colspan() -> Result<()> {
         let mut outline = Outline::default();
-        outline.key_header = vec![
-            "Key Header 1".to_string(),
-            "Key Header 2".to_string(),
-            "Key Header 3".to_string(),
-        ];
-        outline.value_header = vec!["Value Header 1".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
+        outline.key_header = vec!["Key Header 1".to_string()];
+        outline.value_header = vec!["Value Header 1".to_string(), "Value Header 2".to_string()];
+        outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
-        outline.add_item("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]);
+        outline.add_item(
+            "Item 1.1.1",
+            3,
+            vec!["Val1.1.1A".to_string(), "Val1.1.1B".to_string()],
+        );
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(
+        let generator = XlsxType3Generator::new(
             outline,
-            XlsxType2GeneratorOptions {
+            XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Colspan),
             },
@@ -358,13 +396,15 @@ mod tests {
                 .map(|v| v.get_range())
                 .collect::<Vec<_>>(),
             vec![
-                "A2:C2".to_string(),
-                "B3:C3".to_string(),
-                "A5:C5".to_string()
+                "B1:D1".to_string(),
+                "B2:D2".to_string(),
+                "C3:D3".to_string(),
+                "B5:D5".to_string()
             ]
         );
         assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
         assert_eq!(read_worksheet.get_value((2, 3)).as_str(), "Item 1.1");
+        assert_eq!(read_worksheet.get_value((3, 4)).as_str(), "Item 1.1.1");
         assert_eq!(read_worksheet.get_value((1, 5)).as_str(), "Item 2");
 
         drop(temp_file);
@@ -372,13 +412,10 @@ mod tests {
     }
 
     #[test]
-    fn test_xlsx_type2_generator_integrate_cells_rowspan() -> Result<()> {
+    fn test_xlsx_type3_generator_integrate_cells_rowspan() -> Result<()> {
         let mut outline = Outline::default();
-        outline.key_header = vec![
-            "Key Header 1".to_string(),
-            "Key Header 2".to_string(),
-            "Key Header 3".to_string(),
-        ];
+        outline.key_header = vec!["Key Header 1".to_string()];
+        outline.value_header = vec!["Value Header 1".to_string(), "Value Header 2".to_string()];
         outline.value_header = vec!["Value Header 1".to_string()];
         outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
@@ -386,9 +423,9 @@ mod tests {
         outline.add_item("Item 1.2", 2, vec!["Val1.2A".to_string()]);
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(
+        let generator = XlsxType3Generator::new(
             outline,
-            XlsxType2GeneratorOptions {
+            XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Rowspan),
             },
@@ -416,6 +453,9 @@ mod tests {
         );
         assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
         assert_eq!(read_worksheet.get_value((2, 3)).as_str(), "Item 1.1");
+        assert_eq!(read_worksheet.get_value((3, 4)).as_str(), "Item 1.1.1");
+        assert_eq!(read_worksheet.get_value((2, 5)).as_str(), "Item 1.2");
+        assert_eq!(read_worksheet.get_value((1, 6)).as_str(), "Item 2");
 
         drop(temp_file);
         Ok(())
