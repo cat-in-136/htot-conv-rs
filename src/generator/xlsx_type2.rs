@@ -1,7 +1,7 @@
 use crate::outline::Outline;
 use anyhow::Result;
 use clap::Args;
-use rust_xlsxwriter::{Format, FormatBorder, Worksheet, Workbook};
+use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 
 #[derive(Debug, Clone, Args)]
 pub struct XlsxType2GeneratorOptions {
@@ -27,63 +27,6 @@ impl XlsxType2Generator {
         XlsxType2Generator { outline, options }
     }
 
-    pub fn generate(&self, output_path: &str) -> Result<()> {
-        let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        self.output_to_worksheet(&mut worksheet)?;
-
-        // Integrate cells
-        match self.options.integrate_cells {
-            Some(IntegrateCellsOption::Colspan) => {
-                let max_level = self.outline.max_level();
-
-                    let format = Format::new(); // TODO
-                for (item_index, item) in self.outline.item.iter().enumerate() {
-                    if (item.level as u32) < max_level {
-                        worksheet.merge_range(
-                            (item_index + 1) as u32,
-                            (item.level - 1) as u16,
-                            (item_index + 1) as u32,
-                            (max_level - 1) as u16,
-                            "", // TODO
-                            &format // TODO
-                        )?;
-                    }
-                }
-            }
-            Some(IntegrateCellsOption::Rowspan) => {
-                for (item_index, item) in self.outline.item.iter().enumerate() {
-                    let min_row_index = (item_index + 1) as u32;
-                    let mut max_row_index = min_row_index;
-
-                    for i in (item_index + 1)..self.outline.item.len() {
-                        if (self.outline.item[i].level as u32) <= item.level {
-                            break;
-                        }
-                        max_row_index = (i + 1) as u32;
-                    }
-
-                    let format = Format::new(); // TODO
-
-                    if min_row_index != max_row_index {
-                        worksheet.merge_range(
-                            min_row_index,
-                            (item.level - 1) as u16,
-                            max_row_index,
-                            (item.level - 1) as u16,
-                            "", // TODO
-                            &format // TODO
-                        )?;
-                    }
-                }
-            }
-            None => {}
-        }
-
-        workbook.save(output_path)?;
-        Ok(())
-    }
-
     pub fn output_to_worksheet(&self, worksheet: &mut Worksheet) -> Result<()> {
         let max_level = self.outline.max_level();
         let max_value_length = self.outline.max_value_length();
@@ -95,7 +38,11 @@ impl XlsxType2Generator {
         // Write key header and value headers
         let mut col_index = 0;
         for level in 1..=max_level {
-            let header_text = self.outline.key_header.get((level - 1) as usize).map_or("".to_string(), |s| s.clone());
+            let header_text = self
+                .outline
+                .key_header
+                .get((level - 1) as usize)
+                .map_or("".to_string(), |s| s.clone());
             worksheet.write_string_with_format(
                 row_index,
                 col_index as u16,
@@ -106,7 +53,11 @@ impl XlsxType2Generator {
         }
 
         for i in 0..max_value_length {
-            let header_text = self.outline.value_header.get(i as usize).map_or("".to_string(), |s| s.clone());
+            let header_text = self
+                .outline
+                .value_header
+                .get(i)
+                .map_or("".to_string(), |s| s.clone());
             worksheet.write_string_with_format(
                 row_index,
                 col_index as u16,
@@ -121,7 +72,6 @@ impl XlsxType2Generator {
 
         for (item_index, item) in self.outline.item.iter().enumerate() {
             let _key_col_index = item.level - 1;
-            
 
             // Apply borders based on Ruby logic
             for level in 1..=max_level {
@@ -141,7 +91,11 @@ impl XlsxType2Generator {
                 worksheet.write_string_with_format(
                     row_index,
                     (level - 1) as u16,
-                    if (level as u32) == item.level { item.key.clone() } else { "".to_string() },
+                    if (level as u32) == item.level {
+                        item.key.clone()
+                    } else {
+                        "".to_string()
+                    },
                     &format_for_level,
                 )?;
             }
@@ -181,6 +135,58 @@ impl XlsxType2Generator {
                     }
                 }
             }
+        }
+
+        // Integrate cells
+
+        let mut format_for_integrate = Format::new();
+        format_for_integrate = format_for_integrate.set_border_top(FormatBorder::Thin);
+        format_for_integrate = format_for_integrate.set_border_left(FormatBorder::Thin);
+
+        match self.options.integrate_cells {
+            Some(IntegrateCellsOption::Colspan) => {
+                let max_level = self.outline.max_level();
+
+                for (item_index, item) in self.outline.item.iter().enumerate() {
+                    if (item.level as u32) < max_level {
+                        let text = &item.key;
+                        worksheet.merge_range(
+                            (item_index + 1) as u32,
+                            (item.level - 1) as u16,
+                            (item_index + 1) as u32,
+                            (max_level - 1) as u16,
+                            &text,
+                            &format_for_integrate,
+                        )?;
+                    }
+                }
+            }
+            Some(IntegrateCellsOption::Rowspan) => {
+                for (item_index, item) in self.outline.item.iter().enumerate() {
+                    let min_row_index = (item_index + 1) as u32;
+                    let mut max_row_index = min_row_index;
+
+                    for i in (item_index + 1)..self.outline.item.len() {
+                        if (self.outline.item[i].level as u32) <= item.level {
+                            break;
+                        }
+                        max_row_index = (i + 1) as u32;
+                    }
+
+                    if min_row_index != max_row_index {
+                        let text = &item.key;
+                        worksheet.merge_range(
+                            min_row_index,
+                            (item.level - 1) as u16,
+                            max_row_index,
+                            (item.level - 1) as u16,
+                            &text,
+                            &format_for_integrate,
+                        )?;
+                    }
+                }
+            }
+            None => {}
         }
 
         Ok(())
@@ -225,7 +231,6 @@ mod tests {
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile;
     use umya_spreadsheet::reader::xlsx::read as read_xlsx;
-    
 
     #[test]
     fn test_xlsx_type2_generator_basic() -> Result<()> {
@@ -236,10 +241,13 @@ mod tests {
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(outline, XlsxType2GeneratorOptions {
-            outline_rows: false,
-            integrate_cells: None,
-        });
+        let generator = XlsxType2Generator::new(
+            outline,
+            XlsxType2GeneratorOptions {
+                outline_rows: false,
+                integrate_cells: None,
+            },
+        );
 
         let mut workbook = Workbook::new();
         let mut worksheet = workbook.add_worksheet();
@@ -284,19 +292,32 @@ mod tests {
         outline.add_item("Item 2", 1, vec![]);
         outline.add_item("Subitem 2.1", 2, vec![]);
 
-        let generator = XlsxType2Generator::new(outline, XlsxType2GeneratorOptions { outline_rows: true, integrate_cells: None });
+        let generator = XlsxType2Generator::new(
+            outline,
+            XlsxType2GeneratorOptions {
+                outline_rows: true,
+                integrate_cells: None,
+            },
+        );
+
+        let mut workbook = Workbook::new();
+        let mut worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(&mut worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
-        generator.generate(temp_path.to_str().unwrap()).unwrap();
+        workbook.save(&temp_path).unwrap();
 
         let read_spreadsheet = read_xlsx(&temp_path).unwrap();
-        let _read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
 
         // Verify outline levels
         // assert_eq!(read_worksheet.get_row_dimension(&2).unwrap().get_outline_level(), &1);
         // assert_eq!(read_worksheet.get_row_dimension(&3).unwrap().get_outline_level(), &1);
         // assert_eq!(read_worksheet.get_row_dimension(&5).unwrap().get_outline_level(), &1);
+
+        // Verify merge cell
+        assert_eq!(read_worksheet.get_merge_cells().len(), 0);
 
         drop(temp_file);
         Ok(())
@@ -305,35 +326,52 @@ mod tests {
     #[test]
     fn test_xlsx_type2_generator_integrate_cells_colspan() -> Result<()> {
         let mut outline = Outline::default();
-        outline.key_header = vec!["Key Header 1".to_string(), "Key Header 2".to_string(), "Key Header 3".to_string()];
+        outline.key_header = vec![
+            "Key Header 1".to_string(),
+            "Key Header 2".to_string(),
+            "Key Header 3".to_string(),
+        ];
         outline.value_header = vec!["Value Header 1".to_string()];
         outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
         outline.add_item("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]);
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(outline, XlsxType2GeneratorOptions {
-            outline_rows: false,
-            integrate_cells: Some(IntegrateCellsOption::Colspan),
-        });
+        let generator = XlsxType2Generator::new(
+            outline,
+            XlsxType2GeneratorOptions {
+                outline_rows: false,
+                integrate_cells: Some(IntegrateCellsOption::Colspan),
+            },
+        );
+
+        let mut workbook = Workbook::new();
+        let mut worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(&mut worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
-        generator.generate(temp_path.to_str().unwrap()).unwrap();
+        workbook.save(&temp_path).unwrap();
 
         let read_spreadsheet = read_xlsx(&temp_path).unwrap();
-        let _read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
 
-        // Verify merged cells for colspan
-        // Item 1 (level 1) should merge A2:C2
-        // FIXME
-        //assert!(read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 1 && m.get_start_col() == 0 && m.get_end_row() == 1 && m.get_end_col() == 2));
-        //// Item 1.1 (level 2) should merge B3:C3
-        //assert!(read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 2 && m.get_start_col() == 1 && m.get_end_row() == 2 && m.get_end_col() == 2));
-        //// Item 1.1.1 (level 3) should not merge
-        //assert!(!read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 3 && m.get_start_col() == 2));
-        //// Item 2 (level 1) should merge A5:C5
-        //assert!(read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 4 && m.get_start_col() == 0 && m.get_end_row() == 4 && m.get_end_col() == 2));
+        // Verify merge cell
+        let merge_cells = read_worksheet.get_merge_cells();
+        assert_eq!(
+            merge_cells
+                .into_iter()
+                .map(|v| v.get_range())
+                .collect::<Vec<_>>(),
+            vec![
+                "A2:C2".to_string(),
+                "B3:C3".to_string(),
+                "A5:C5".to_string()
+            ]
+        );
+        assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
+        assert_eq!(read_worksheet.get_value((2, 3)).as_str(), "Item 1.1");
+        assert_eq!(read_worksheet.get_value((1, 5)).as_str(), "Item 2");
 
         drop(temp_file);
         Ok(())
@@ -342,7 +380,11 @@ mod tests {
     #[test]
     fn test_xlsx_type2_generator_integrate_cells_rowspan() -> Result<()> {
         let mut outline = Outline::default();
-        outline.key_header = vec!["Key Header 1".to_string(), "Key Header 2".to_string(), "Key Header 3".to_string()];
+        outline.key_header = vec![
+            "Key Header 1".to_string(),
+            "Key Header 2".to_string(),
+            "Key Header 3".to_string(),
+        ];
         outline.value_header = vec!["Value Header 1".to_string()];
         outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
         outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
@@ -350,26 +392,36 @@ mod tests {
         outline.add_item("Item 1.2", 2, vec!["Val1.2A".to_string()]);
         outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
 
-        let generator = XlsxType2Generator::new(outline, XlsxType2GeneratorOptions {
-            outline_rows: false,
-            integrate_cells: Some(IntegrateCellsOption::Rowspan),
-        });
+        let generator = XlsxType2Generator::new(
+            outline,
+            XlsxType2GeneratorOptions {
+                outline_rows: false,
+                integrate_cells: Some(IntegrateCellsOption::Rowspan),
+            },
+        );
+
+        let mut workbook = Workbook::new();
+        let mut worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(&mut worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
-        generator.generate(temp_path.to_str().unwrap()).unwrap();
+        workbook.save(&temp_path).unwrap();
 
         let read_spreadsheet = read_xlsx(&temp_path).unwrap();
-        let _read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
 
-        //// Verify merged cells for rowspan
-        //// Item 1 (level 1) should merge A2:A4
-        // FIXME
-        //assert!(read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 1 && m.get_start_col() == 0 && m.get_end_row() == 3 && m.get_end_col() == 0));
-        //// Item 1.1 (level 2) should merge B3:B4
-        //assert!(read_worksheet.get_merge_cells().iter().any(|m| m.get_start_row() == 2 && m.get_start_col() == 1 && m.get_end_row() == 3 && m.get_end_col() == 1));
-        //// Item 2 (level 1) should not merge
-        //assert!(!read_worksheet.get_merge_cells().iter().any(|m| m.get_coordinate_start_row() == 4 && m.get_coordinate_start_col() == 0));
+        // Verify merge cell
+        let merge_cells = read_worksheet.get_merge_cells();
+        assert_eq!(
+            merge_cells
+                .into_iter()
+                .map(|v| v.get_range())
+                .collect::<Vec<_>>(),
+            vec!["A2:A5".to_string(), "B3:B4".to_string()]
+        );
+        assert_eq!(read_worksheet.get_value((1, 2)).as_str(), "Item 1");
+        assert_eq!(read_worksheet.get_value((2, 3)).as_str(), "Item 1.1");
 
         drop(temp_file);
         Ok(())
