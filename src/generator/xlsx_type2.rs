@@ -143,6 +143,13 @@ impl XlsxType2Generator {
 
                 for (item_index, item) in self.outline.item.iter().enumerate() {
                     if item.level < max_level {
+                        format_for_integrate = format_for_integrate.set_border_bottom(
+                            if item_index == self.outline.item.len() - 1 {
+                                FormatBorder::Thin
+                            } else {
+                                FormatBorder::None
+                            },
+                        );
                         let text = &item.key;
                         worksheet.merge_range(
                             (item_index + 1) as u32,
@@ -168,6 +175,8 @@ impl XlsxType2Generator {
                     }
 
                     if min_row_index != max_row_index {
+                        format_for_integrate =
+                            format_for_integrate.set_border_bottom(FormatBorder::Thin);
                         let text = &item.key;
                         worksheet.merge_range(
                             min_row_index,

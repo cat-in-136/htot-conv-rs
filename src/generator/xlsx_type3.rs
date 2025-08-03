@@ -158,10 +158,7 @@ impl XlsxType3Generator {
         }
 
         // Integrate cells
-        let mut format_for_integrate = Format::new();
-        format_for_integrate = format_for_integrate.set_border_top(FormatBorder::Thin);
-        format_for_integrate = format_for_integrate.set_border_left(FormatBorder::Thin);
-
+        let format_for_integrate = Format::new().set_border(FormatBorder::Thin);
         if self.options.integrate_cells
             == Some(crate::generator::base::IntegrateCellsOption::Colspan)
             || self.options.integrate_cells
