@@ -2,6 +2,7 @@ use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
 use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
+use htot_conv_rs::generator::xlsx_type2::XlsxType2GeneratorOptions;
 use htot_conv_rs::generator::GeneratorOptions;
 use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::html_list::HtmlListParserOptions;
@@ -22,7 +23,7 @@ struct Cli {
     from_type: String,
 
     /// Type of output (e.g., xlsx_type0, xlsx_type1)
-    #[arg(short = 't', long, value_name = "TYPE", default_value = "xlsx_type0")]
+    #[arg(short = 't', long, value_name = "TYPE", default_value = "xlsx_type2")]
     to_type: String,
 
     /// The string used for indentation (e.g., "  " for two spaces, "\t" for tab).
@@ -38,8 +39,8 @@ struct Cli {
     #[arg(long = "from-key-header")]
     key_header: Option<String>,
     /// A list of strings representing the value headers.
-    #[arg(long = "from-value-header")]
-    value_header: Option<String>,
+    #[arg(long = "from-value-header", default_values_t = Vec::<String>::new())]
+    value_header: Vec<String>,
 
     /// Glob pattern for dir_tree parser (e.g., "**/*", "*.txt").
     #[arg(long = "from-dir-tree-glob-pattern", default_value = "**/*")]
@@ -68,6 +69,10 @@ struct Cli {
     /// Group rows in XLSX output (for xlsx_type1).
     #[arg(long = "to-outline-rows", default_value_t = false)]
     to_outline_rows: bool,
+
+    /// Integrate cells in XLSX output (for xlsx_type2).
+    #[arg(long = "to-integrate-cells")]
+    to_integrate_cells: Option<htot_conv_rs::generator::xlsx_type2::IntegrateCellsOption>,
 
     /// Input file (default: stdin)
     input: Option<String>,
@@ -107,8 +112,8 @@ fn main() -> anyhow::Result<()> {
             indent: cli.indent,
             delimiter: cli.delimiter,
             preserve_empty_line: cli.preserve_empty_line,
-            key_header: cli.key_header,
-            value_header: cli.value_header,
+            key_header: cli.key_header.map(|s| vec![s]),
+            value_header: Some(cli.value_header),
         }),
         "dir_tree" => ParserOptions::DirTree(DirTreeParserOptions {
             key_header: cli.key_header,
@@ -132,6 +137,10 @@ fn main() -> anyhow::Result<()> {
         "xlsx_type0" => GeneratorOptions::XlsxType0(XlsxType0GeneratorOptions {}),
         "xlsx_type1" => GeneratorOptions::XlsxType1(XlsxType1GeneratorOptions {
             outline_rows: cli.to_outline_rows,
+        }),
+        "xlsx_type2" => GeneratorOptions::XlsxType2(XlsxType2GeneratorOptions {
+            outline_rows: cli.to_outline_rows,
+            integrate_cells: cli.to_integrate_cells,
         }),
         _ => panic!("Unsupported to_type: {}", cli.to_type),
     };
