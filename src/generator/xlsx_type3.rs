@@ -34,8 +34,7 @@ impl XlsxType3Generator {
         let mut col_index = 0;
         let header_text_key = self
             .outline
-            .key_header
-            .get(0)
+            .key_header.first()
             .map_or("".to_string(), |s| s.clone());
         worksheet.write_string_with_format(
             row_index,
@@ -48,8 +47,7 @@ impl XlsxType3Generator {
         // Value Header 0 (B1)
         let header_text_val0 = self
             .outline
-            .value_header
-            .get(0)
+            .value_header.first()
             .map_or("".to_string(), |s| s.clone());
         worksheet.write_string_with_format(
             row_index,
@@ -61,7 +59,7 @@ impl XlsxType3Generator {
 
         // Empty cell
         while col_index <= max_level as _ {
-            worksheet.write_string_with_format(row_index, col_index as u16, "", &header_format)?;
+            worksheet.write_string_with_format(row_index, col_index, "", &header_format)?;
             col_index += 1;
         }
 
@@ -74,7 +72,7 @@ impl XlsxType3Generator {
                 .map_or("".to_string(), |s| s.clone());
             worksheet.write_string_with_format(
                 row_index,
-                col_index as u16,
+                col_index,
                 &header_text,
                 &header_format,
             )?;
@@ -112,7 +110,7 @@ impl XlsxType3Generator {
                 )?;
             }
 
-            if let Some(value) = item.value.get(0) {
+            if let Some(value) = item.value.first() {
                 worksheet.write_string_with_format(
                     row_index,
                     item.level as u16,
@@ -172,14 +170,13 @@ impl XlsxType3Generator {
             if max_level > 1 {
                 let text = self
                     .outline
-                    .value_header
-                    .get(0)
+                    .value_header.first()
                     .map_or("".to_string(), |s| s.clone());
                 worksheet.merge_range(0, 1, 0, max_level as u16, &text, &format_for_integrate)?;
             }
             for (item_index, item) in self.outline.item.iter().enumerate() {
                 if item.level < max_level {
-                    let text = item.value.get(0).map_or("".to_string(), |s| s.clone());
+                    let text = item.value.first().map_or("".to_string(), |s| s.clone());
                     worksheet.merge_range(
                         item_first_row_index + item_index as u32,
                         item.level as u16,
