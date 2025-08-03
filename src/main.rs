@@ -4,6 +4,7 @@ use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::generator::GeneratorOptions;
 use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::html_list::HtmlListParserOptions;
+use htot_conv_rs::parser::mspdi::MspdiParserOptions;
 use htot_conv_rs::parser::simple_text::SimpleTextParserOptions;
 use htot_conv_rs::parser::ParserOptions;
 use htot_conv_rs::{get_generator_types, get_parser_types};
@@ -48,6 +49,13 @@ struct Cli {
     /// A list of strings representing the key headers for html_list parser.
     #[arg(long = "from-html-list-key-header", default_values_t = Vec::<String>::new())]
     from_html_list_key_header: Vec<String>,
+
+    /// A list of strings representing the key headers for mspdi parser.
+    #[arg(long = "from-mspdi-key-header", default_values_t = Vec::<String>::new())]
+    from_mspdi_key_header: Vec<String>,
+    /// A list of strings representing the value headers for mspdi parser.
+    #[arg(long = "from-mspdi-value-header", default_values_t = Vec::<String>::new())]
+    from_mspdi_value_header: Vec<String>,
 
     /// Input file (default: stdin)
     input: Option<String>,
@@ -97,6 +105,10 @@ fn main() -> anyhow::Result<()> {
         }),
         "html_list" => ParserOptions::HtmlList(HtmlListParserOptions {
             key_header: cli.from_html_list_key_header,
+        }),
+        "mspdi" => ParserOptions::Mspdi(MspdiParserOptions {
+            key_header: cli.from_mspdi_key_header,
+            value_header: cli.from_mspdi_value_header,
         }),
         _ => panic!("Unsupported from_type: {}", cli.from_type),
     };

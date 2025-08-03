@@ -6,6 +6,7 @@ use crate::generator::xlsx_type0::XlsxType0Generator;
 use crate::generator::GeneratorOptions;
 use crate::parser::dir_tree::DirTreeParser;
 use crate::parser::html_list::HtmlListParser;
+use crate::parser::mspdi::MspdiParser;
 use crate::parser::simple_text::SimpleTextParser;
 use crate::parser::ParserOptions;
 use rust_xlsxwriter::Workbook;
@@ -53,6 +54,18 @@ pub fn run_conversion(
                 }
             };
             let parser = HtmlListParser::new(options);
+            parser.parse(&input_content)?
+        }
+        ParserOptions::Mspdi(options) => {
+            let input_content = match input_path_option {
+                Some(path) if path != "-" => std::fs::read_to_string(path)?,
+                _ => {
+                    let mut buf = String::new();
+                    std::io::stdin().read_to_string(&mut buf)?;
+                    buf
+                }
+            };
+            let parser = MspdiParser::new(options);
             parser.parse(&input_content)?
         }
     };
