@@ -11,30 +11,31 @@ pub struct XlsxType1GeneratorOptions {
 }
 
 pub struct XlsxType1Generator {
+    outline: Outline,
     options: XlsxType1GeneratorOptions,
 }
 
 impl XlsxType1Generator {
-    pub fn new(options: XlsxType1GeneratorOptions) -> Self {
-        XlsxType1Generator { options }
+    pub fn new(outline: Outline, options: XlsxType1GeneratorOptions) -> Self {
+        XlsxType1Generator { outline, options }
     }
 
-    pub fn output_to_worksheet(&self, worksheet: &mut Worksheet, outline: &Outline) -> Result<()> {
+    pub fn output_to_worksheet(&self, worksheet: &mut Worksheet) -> Result<()> {
         let mut row_index = 0;
-        let max_value_length = outline.max_value_length();
+        let max_value_length = self.outline.max_value_length();
 
         let header_format = Format::new().set_border(FormatBorder::Thin);
         let item_format = Format::new().set_border(FormatBorder::Thin);
 
         // Write key header and value headers
         let mut headers: Vec<String> = Vec::new();
-        if let Some(key_h) = outline.key_header.first() {
+        if let Some(key_h) = self.outline.key_header.first() {
             headers.push(key_h.clone());
         } else {
             headers.push("".to_string()); // Placeholder for key header if not present
         }
         // Pad value_header to max_value_length
-        let mut padded_value_headers = outline.value_header.clone();
+        let mut padded_value_headers = self.outline.value_header.clone();
         padded_value_headers.resize(max_value_length, "".to_string());
         headers.extend(padded_value_headers);
 
@@ -50,7 +51,7 @@ impl XlsxType1Generator {
 
         let item_first_row_index = row_index;
 
-        for item in &outline.item {
+        for item in &self.outline.item {
             let mut row_data = Vec::new();
             row_data.push(item.key.clone());
             // Pad item.value to max_value_length
@@ -71,7 +72,7 @@ impl XlsxType1Generator {
 
         // Group rows if outline_rows option is true
         if self.options.outline_rows {
-            let levels: Vec<_> = outline.item.iter().map(|v| v.level).collect();
+            let levels: Vec<_> = self.outline.item.iter().map(|v| v.level).collect();
             for (level, v) in Self::find_intervals_hierarchical(&levels)
                 .iter()
                 .enumerate()
@@ -125,6 +126,7 @@ impl XlsxType1Generator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::outline::OutlineItem;
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile;
     use umya_spreadsheet::reader::xlsx::read as read_xlsx;
@@ -132,28 +134,34 @@ mod tests {
 
     #[test]
     fn test_xlsx_type1_generator_basic() {
-        let mut outline = Outline::default();
-        outline.key_header = vec!["Key".to_string()];
-        outline.value_header = vec!["Value1".to_string(), "Value2".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
-        outline.add_item("Item 2", 2, vec!["Val2A".to_string()]);
-        outline.add_item(
-            "Item 3",
-            1,
-            vec![
-                "Val3A".to_string(),
-                "Val3B".to_string(),
-                "Val3C".to_string(),
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]),
+                OutlineItem::new("Item 2", 2, vec!["Val2A".to_string()]),
+                OutlineItem::new(
+                    "Item 3",
+                    1,
+                    vec![
+                        "Val3A".to_string(),
+                        "Val3B".to_string(),
+                        "Val3C".to_string(),
+                    ],
+                ),
             ],
-        );
+        };
 
-        let generator = XlsxType1Generator::new(XlsxType1GeneratorOptions {
-            outline_rows: false,
-        });
+        let generator = XlsxType1Generator::new(
+            outline,
+            XlsxType1GeneratorOptions {
+                outline_rows: false,
+            },
+        );
 
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(worksheet, &outline).unwrap();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -199,18 +207,23 @@ mod tests {
 
     #[test]
     fn test_xlsx_type1_generator_outline_rows() {
-        let mut outline = Outline::default();
-        outline.add_item("Item 1", 1, vec![]);
-        outline.add_item("Subitem 1.1", 2, vec![]);
-        outline.add_item("Subitem 1.2", 2, vec![]);
-        outline.add_item("Item 2", 1, vec![]);
-        outline.add_item("Subitem 2.1", 2, vec![]);
+        let outline = Outline {
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec![]),
+                OutlineItem::new("Subitem 1.1", 2, vec![]),
+                OutlineItem::new("Subitem 1.2", 2, vec![]),
+                OutlineItem::new("Item 2", 1, vec![]),
+                OutlineItem::new("Subitem 2.1", 2, vec![]),
+            ],
+            ..Default::default()
+        };
 
-        let generator = XlsxType1Generator::new(XlsxType1GeneratorOptions { outline_rows: true });
+        let generator =
+            XlsxType1Generator::new(outline, XlsxType1GeneratorOptions { outline_rows: true });
 
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(worksheet, &outline).unwrap();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();

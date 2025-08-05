@@ -230,6 +230,8 @@ impl XlsxType2Generator {
 
 #[cfg(test)]
 mod tests {
+    use crate::outline::OutlineItem;
+
     use super::*;
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile;
@@ -237,12 +239,15 @@ mod tests {
 
     #[test]
     fn test_xlsx_type2_generator_basic() -> Result<()> {
-        let mut outline = Outline::default();
-        outline.key_header = vec!["Key Header 1".to_string(), "Key Header 2".to_string()];
-        outline.value_header = vec!["Value Header 1".to_string(), "Value Header 2".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
-        outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
-        outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
+        let outline = Outline {
+            key_header: vec!["Key Header 1".to_string(), "Key Header 2".to_string()],
+            value_header: vec!["Value Header 1".to_string(), "Value Header 2".to_string()],
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]),
+                OutlineItem::new("Item 1.1", 2, vec!["Val1.1A".to_string()]),
+                OutlineItem::new("Item 2", 1, vec!["Val2A".to_string()]),
+            ],
+        };
 
         let generator = XlsxType2Generator::new(
             outline,
@@ -328,17 +333,20 @@ mod tests {
 
     #[test]
     fn test_xlsx_type2_generator_integrate_cells_colspan() -> Result<()> {
-        let mut outline = Outline::default();
-        outline.key_header = vec![
-            "Key Header 1".to_string(),
-            "Key Header 2".to_string(),
-            "Key Header 3".to_string(),
-        ];
-        outline.value_header = vec!["Value Header 1".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
-        outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
-        outline.add_item("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]);
-        outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
+        let outline = Outline {
+            key_header: vec![
+                "Key Header 1".to_string(),
+                "Key Header 2".to_string(),
+                "Key Header 3".to_string(),
+            ],
+            value_header: vec!["Value Header 1".to_string()],
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec!["Val1A".to_string()]),
+                OutlineItem::new("Item 1.1", 2, vec!["Val1.1A".to_string()]),
+                OutlineItem::new("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]),
+                OutlineItem::new("Item 2", 1, vec!["Val2A".to_string()]),
+            ],
+        };
 
         let generator = XlsxType2Generator::new(
             outline,
@@ -382,18 +390,21 @@ mod tests {
 
     #[test]
     fn test_xlsx_type2_generator_integrate_cells_rowspan() -> Result<()> {
-        let mut outline = Outline::default();
-        outline.key_header = vec![
-            "Key Header 1".to_string(),
-            "Key Header 2".to_string(),
-            "Key Header 3".to_string(),
-        ];
-        outline.value_header = vec!["Value Header 1".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string()]);
-        outline.add_item("Item 1.1", 2, vec!["Val1.1A".to_string()]);
-        outline.add_item("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]);
-        outline.add_item("Item 1.2", 2, vec!["Val1.2A".to_string()]);
-        outline.add_item("Item 2", 1, vec!["Val2A".to_string()]);
+        let outline = Outline {
+            key_header: vec![
+                "Key Header 1".to_string(),
+                "Key Header 2".to_string(),
+                "Key Header 3".to_string(),
+            ],
+            value_header: vec!["Value Header 1".to_string()],
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec!["Val1A".to_string()]),
+                OutlineItem::new("Item 1.1", 2, vec!["Val1.1A".to_string()]),
+                OutlineItem::new("Item 1.1.1", 3, vec!["Val1.1.1A".to_string()]),
+                OutlineItem::new("Item 1.2", 2, vec!["Val1.2A".to_string()]),
+                OutlineItem::new("Item 2", 1, vec!["Val2A".to_string()]),
+            ],
+        };
 
         let generator = XlsxType2Generator::new(
             outline,

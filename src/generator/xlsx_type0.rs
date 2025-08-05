@@ -7,25 +7,27 @@ pub struct XlsxType0GeneratorOptions {
     // No specific options for XlsxType0 in Ruby implementation
 }
 
-pub struct XlsxType0Generator;
+pub struct XlsxType0Generator {
+    outline: Outline,
+}
 
 impl XlsxType0Generator {
-    pub fn new(_options: XlsxType0GeneratorOptions) -> Self {
-        XlsxType0Generator
+    pub fn new(outline: Outline, _options: XlsxType0GeneratorOptions) -> Self {
+        XlsxType0Generator { outline }
     }
 
-    pub fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()> {
+    pub fn output_to_worksheet(&self, worksheet: &mut Worksheet) -> Result<()> {
         let mut row_index = 0;
-        let max_value_length = data.max_value_length();
+        let max_value_length = self.outline.max_value_length();
 
         // Define a format for cells with thin borders
         let border_format = Format::new().set_border(rust_xlsxwriter::FormatBorder::Thin);
 
         // Header row
         let mut header_values = Vec::new();
-        header_values.push(data.key_header.first().cloned().unwrap_or_default());
+        header_values.push(self.outline.key_header.first().cloned().unwrap_or_default());
         header_values.push("Outline Level".to_string());
-        for s in data.value_header.iter() {
+        for s in self.outline.value_header.iter() {
             header_values.push(s.clone());
         }
 
@@ -45,7 +47,7 @@ impl XlsxType0Generator {
         row_index += 1;
 
         // Data rows
-        for item in &data.item {
+        for item in &self.outline.item {
             let mut row_values: Vec<String> = Vec::new();
             row_values.push(item.key.clone());
             row_values.push(item.level.to_string());
@@ -74,31 +76,35 @@ impl XlsxType0Generator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::outline::OutlineItem;
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile; // Added for test
 
     #[test]
     fn test_xlsx_type0_generator() {
-        let mut outline = Outline::default();
-        outline.key_header = vec!["Key".to_string()];
-        outline.value_header = vec!["Value1".to_string(), "Value2".to_string()];
-        outline.add_item("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]);
-        outline.add_item("Item 2", 2, vec!["Val2A".to_string()]);
-        outline.add_item(
-            "Item 3",
-            1,
-            vec![
-                "Val3A".to_string(),
-                "Val3B".to_string(),
-                "Val3C".to_string(),
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![
+                OutlineItem::new("Item 1", 1, vec!["Val1A".to_string(), "Val1B".to_string()]),
+                OutlineItem::new("Item 2", 2, vec!["Val2A".to_string()]),
+                OutlineItem::new(
+                    "Item 3",
+                    1,
+                    vec![
+                        "Val3A".to_string(),
+                        "Val3B".to_string(),
+                        "Val3C".to_string(),
+                    ],
+                ),
             ],
-        );
+        };
 
-        let generator = XlsxType0Generator::new(XlsxType0GeneratorOptions {});
+        let generator = XlsxType0Generator::new(outline, XlsxType0GeneratorOptions {});
 
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(worksheet, &outline).unwrap();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         // Save to a temporary file using rust_xlsxwriter
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();

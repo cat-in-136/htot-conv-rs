@@ -87,20 +87,20 @@ pub fn run_conversion(
 
     match to_options {
         GeneratorOptions::XlsxType0(options) => {
-            let generator = XlsxType0Generator::new(options);
+            let generator = XlsxType0Generator::new(outline, options);
             let mut workbook = Workbook::new();
             let worksheet = workbook.add_worksheet();
-            generator.output_to_worksheet(worksheet, &outline)?;
+            generator.output_to_worksheet(worksheet)?;
 
             // Save the workbook to a buffer and then write to the output_writer
             let buffer = workbook.save_to_buffer()?;
             output_writer.write_all(&buffer)?;
         }
         GeneratorOptions::XlsxType1(options) => {
-            let generator = XlsxType1Generator::new(options);
+            let generator = XlsxType1Generator::new(outline, options);
             let mut workbook = Workbook::new();
             let worksheet = workbook.add_worksheet();
-            generator.output_to_worksheet(worksheet, &outline)?;
+            generator.output_to_worksheet(worksheet)?;
 
             // Save the workbook to a buffer and then write to the output_writer
             let buffer = workbook.save_to_buffer()?;
