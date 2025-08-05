@@ -181,7 +181,7 @@ mod tests {
         assert_eq!(options.indent, "\t");
         assert_eq!(options.delimiter, None);
 
-        assert_eq!(options.preserve_empty_line, false);
+        assert!(!options.preserve_empty_line);
         assert_eq!(options.key_header, None);
         assert_eq!(options.value_header, None);
     }
@@ -200,7 +200,7 @@ mod tests {
         assert_eq!(parser.option.delimiter, Some("\t".to_string()));
 
         assert_eq!(parser.option.value_header, Some("H(1),H(2)".to_string()));
-        assert_eq!(parser.option.preserve_empty_line, true);
+        assert!(parser.option.preserve_empty_line);
     }
 
     #[test]

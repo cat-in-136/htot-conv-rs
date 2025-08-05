@@ -1,4 +1,3 @@
-use crate::generator::base::Generator;
 use crate::outline::Outline;
 use anyhow::Result;
 use rust_xlsxwriter::{ColNum, Format, RowNum, Worksheet};
@@ -14,10 +13,8 @@ impl XlsxType0Generator {
     pub fn new(_options: XlsxType0GeneratorOptions) -> Self {
         XlsxType0Generator
     }
-}
 
-impl Generator for XlsxType0Generator {
-    fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()> {
+    pub fn output_to_worksheet(&self, worksheet: &mut Worksheet, data: &Outline) -> Result<()> {
         let mut row_index = 0;
         let max_value_length = data.max_value_length();
 
@@ -100,10 +97,8 @@ mod tests {
         let generator = XlsxType0Generator::new(XlsxType0GeneratorOptions {});
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator
-            .output_to_worksheet(&mut worksheet, &outline)
-            .unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet, &outline).unwrap();
 
         // Save to a temporary file using rust_xlsxwriter
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();

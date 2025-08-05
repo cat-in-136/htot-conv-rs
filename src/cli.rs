@@ -1,7 +1,6 @@
 use anyhow::Result;
 use std::io::{Read, Write};
 
-use crate::generator::base::Generator;
 use crate::generator::xlsx_type0::XlsxType0Generator;
 use crate::generator::xlsx_type1::XlsxType1Generator;
 use crate::generator::xlsx_type2::XlsxType2Generator;

@@ -34,7 +34,8 @@ impl XlsxType3Generator {
         let mut col_index = 0;
         let header_text_key = self
             .outline
-            .key_header.first()
+            .key_header
+            .first()
             .map_or("".to_string(), |s| s.clone());
         worksheet.write_string_with_format(
             row_index,
@@ -47,7 +48,8 @@ impl XlsxType3Generator {
         // Value Header 0 (B1)
         let header_text_val0 = self
             .outline
-            .value_header.first()
+            .value_header
+            .first()
             .map_or("".to_string(), |s| s.clone());
         worksheet.write_string_with_format(
             row_index,
@@ -167,7 +169,8 @@ impl XlsxType3Generator {
             if max_level > 1 {
                 let text = self
                     .outline
-                    .value_header.first()
+                    .value_header
+                    .first()
                     .map_or("".to_string(), |s| s.clone());
                 worksheet.merge_range(0, 1, 0, max_level as u16, &text, &format_for_integrate)?;
             }
@@ -277,8 +280,8 @@ mod tests {
         );
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(&mut worksheet).unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -327,8 +330,8 @@ mod tests {
         );
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(&mut worksheet).unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -372,8 +375,8 @@ mod tests {
         );
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(&mut worksheet).unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -386,7 +389,7 @@ mod tests {
         let merge_cells = read_worksheet.get_merge_cells();
         assert_eq!(
             merge_cells
-                .into_iter()
+                .iter()
                 .map(|v| v.get_range())
                 .collect::<Vec<_>>(),
             vec![
@@ -426,8 +429,8 @@ mod tests {
         );
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator.output_to_worksheet(&mut worksheet).unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -440,7 +443,7 @@ mod tests {
         let merge_cells = read_worksheet.get_merge_cells();
         assert_eq!(
             merge_cells
-                .into_iter()
+                .iter()
                 .map(|v| v.get_range())
                 .collect::<Vec<_>>(),
             vec!["A2:A5".to_string(), "B3:B4".to_string()]

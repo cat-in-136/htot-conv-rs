@@ -198,7 +198,7 @@ mod tests {
         let parser = DirTreeParser::new(options);
         let outline = parser.parse(tmp_dir.path())?;
 
-        let mut expected_items = vec![
+        let mut expected_items = [
             ("file1.txt".to_string(), 1),
             ("subdir1/".to_string(), 1),
             ("file3.txt".to_string(), 2),

@@ -152,10 +152,8 @@ mod tests {
         });
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator
-            .output_to_worksheet(&mut worksheet, &outline)
-            .unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet, &outline).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
@@ -211,10 +209,8 @@ mod tests {
         let generator = XlsxType1Generator::new(XlsxType1GeneratorOptions { outline_rows: true });
 
         let mut workbook = Workbook::new();
-        let mut worksheet = workbook.add_worksheet();
-        generator
-            .output_to_worksheet(&mut worksheet, &outline)
-            .unwrap();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet, &outline).unwrap();
 
         let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
         let temp_path = temp_file.path().to_path_buf();
