@@ -292,6 +292,63 @@ impl OutlineTree {
     pub fn is_leaf(&self) -> bool {
         !self.is_root() && self.children.is_empty()
     }
+
+    /// Returns all descendant nodes in pre-order (children left-to-right).
+    pub fn descendants(rc: &Rc<RefCell<OutlineTree>>) -> Vec<Rc<RefCell<OutlineTree>>> {
+        fn visit(n: &Rc<RefCell<OutlineTree>>, acc: &mut Vec<Rc<RefCell<OutlineTree>>>) {
+            let children: Vec<Rc<RefCell<OutlineTree>>> = n.borrow().children().to_vec();
+            for ch in children {
+                acc.push(Rc::clone(&ch));
+                visit(&ch, acc);
+            }
+        }
+        let mut res = Vec::new();
+        visit(rc, &mut res);
+        res
+    }
+
+    /// Returns ancestors from parent to root (excluding self).
+    pub fn ancestors(rc: &Rc<RefCell<OutlineTree>>) -> Vec<Rc<RefCell<OutlineTree>>> {
+        let mut res = Vec::new();
+        let mut cur = rc.borrow().parent();
+        while let Some(p) = cur {
+            res.push(Rc::clone(&p));
+            cur = p.borrow().parent();
+        }
+        res
+    }
+
+    /// Returns previous sibling if exists.
+    pub fn prev(rc: &Rc<RefCell<OutlineTree>>) -> Option<Rc<RefCell<OutlineTree>>> {
+        let parent = rc.borrow().parent()?;
+        let siblings = parent.borrow();
+        let ptr = Rc::as_ptr(rc);
+        let idx = siblings
+            .children()
+            .iter()
+            .position(|s| Rc::as_ptr(s) == ptr)?;
+        if idx == 0 {
+            None
+        } else {
+            Some(Rc::clone(&siblings.children()[idx - 1]))
+        }
+    }
+
+    /// Returns next sibling if exists.
+    pub fn next(rc: &Rc<RefCell<OutlineTree>>) -> Option<Rc<RefCell<OutlineTree>>> {
+        let parent = rc.borrow().parent()?;
+        let siblings = parent.borrow();
+        let ptr = Rc::as_ptr(rc);
+        let idx = siblings
+            .children()
+            .iter()
+            .position(|s| Rc::as_ptr(s) == ptr)?;
+        if idx + 1 >= siblings.children().len() {
+            None
+        } else {
+            Some(Rc::clone(&siblings.children()[idx + 1]))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -606,5 +663,63 @@ mod tests {
         let grand_child = OutlineTree::add_child(&child, OutlineItem::new("grandchild", 2, vec![]));
         assert!(!child.borrow().is_leaf()); // Child is no longer a leaf
         assert!(grand_child.borrow().is_leaf()); // Grandchild is a leaf
+    }
+
+    #[test]
+    fn test_descendants_ancestors_prev_next() {
+        // Build tree: root -> A -> (B -> C), and A -> D; root -> E -> F
+        let mut outline = Outline::new();
+        outline.add_item("A", 1, vec![]);
+        outline.add_item("B", 2, vec![]);
+        outline.add_item("C", 3, vec![]);
+        outline.add_item("D", 2, vec![]);
+        outline.add_item("E", 1, vec![]);
+        outline.add_item("F", 2, vec![]);
+
+        let tree = outline.to_tree();
+        let a = tree.borrow().children()[0].clone();
+        let e = tree.borrow().children()[1].clone();
+
+        let b = a.borrow().children()[0].clone();
+        let d = a.borrow().children()[1].clone();
+        let c = b.borrow().children()[0].clone();
+
+        // descendants of A: [B, C, D]
+        let desc_a = OutlineTree::descendants(&a);
+        assert_eq!(desc_a.len(), 3);
+        assert_eq!(desc_a[0].borrow().item().unwrap().key, "B");
+        assert_eq!(desc_a[1].borrow().item().unwrap().key, "C");
+        assert_eq!(desc_a[2].borrow().item().unwrap().key, "D");
+
+        // ancestors of C: [B, A, root]
+        let anc_c = OutlineTree::ancestors(&c);
+        assert_eq!(anc_c.len(), 3);
+        assert_eq!(anc_c[0].borrow().item().unwrap().key, "B");
+        assert_eq!(anc_c[1].borrow().item().unwrap().key, "A");
+        assert!(anc_c[2].borrow().is_root());
+
+        // prev/next among siblings under A
+        assert!(OutlineTree::prev(&b).is_none());
+        assert_eq!(
+            OutlineTree::next(&b).unwrap().borrow().item().unwrap().key,
+            "D"
+        );
+        assert_eq!(
+            OutlineTree::prev(&d).unwrap().borrow().item().unwrap().key,
+            "B"
+        );
+        assert!(OutlineTree::next(&d).is_none());
+
+        // prev/next across top-level siblings: A <-> E
+        assert!(OutlineTree::prev(&a).is_none());
+        assert_eq!(
+            OutlineTree::next(&a).unwrap().borrow().item().unwrap().key,
+            "E"
+        );
+        assert_eq!(
+            OutlineTree::prev(&e).unwrap().borrow().item().unwrap().key,
+            "A"
+        );
+        assert!(OutlineTree::next(&e).is_none());
     }
 }
