@@ -4,6 +4,7 @@ use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type2::XlsxType2GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type3::XlsxType3GeneratorOptions;
+use htot_conv_rs::generator::xlsx_type4::XlsxType4GeneratorOptions;
 use htot_conv_rs::generator::GeneratorOptions;
 use htot_conv_rs::parser::dir_tree::DirTreeParserOptions;
 use htot_conv_rs::parser::html_list::HtmlListParserOptions;
@@ -145,6 +146,9 @@ fn main() -> anyhow::Result<()> {
         }),
         "xlsx_type3" => GeneratorOptions::XlsxType3(XlsxType3GeneratorOptions {
             outline_rows: cli.to_outline_rows,
+            integrate_cells: cli.to_integrate_cells,
+        }),
+        "xlsx_type4" => GeneratorOptions::XlsxType4(XlsxType4GeneratorOptions {
             integrate_cells: cli.to_integrate_cells,
         }),
         _ => panic!("Unsupported to_type: {}", cli.to_type),
