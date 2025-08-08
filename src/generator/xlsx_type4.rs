@@ -66,148 +66,122 @@ impl XlsxType4Generator {
 
         row_index += 1;
 
-        // Rowspan tracking per level: remember active parent node (group) and its start row
-        let mut active_parent: Vec<Option<usize>> = vec![None; max_level];
-        let mut active_start_row: Vec<Option<u32>> = vec![None; max_level];
-        let mut active_value: Vec<Option<String>> = vec![None; max_level];
+        let mut node_rows: Vec<(Rc<_>, u32)> = Vec::new();
 
+        // Pass 1: build display
         let tree = self.outline.to_tree();
-        for node_rc in OutlineTree::descendants(&tree) {
-            if !node_rc.borrow().is_leaf() {
-                continue;
-            }
-
-            // Build key cells across levels using ancestors and prev boundary
-            let mut key_cells: Vec<Option<String>> = vec![None; max_level];
-            for c_node in std::iter::once(node_rc.clone()).chain(OutlineTree::ancestors(&node_rc)) {
-                if let Some(c_item) = c_node.borrow().item() {
-                    key_cells[c_item.level as usize - 1] = Some(c_item.key.clone())
-                }
-                if OutlineTree::prev(&c_node).is_some() {
-                    break;
-                }
-            }
-
-            let mut value_cell = node_rc
-                .borrow()
-                .item()
-                .map(|v| v.value.iter().map(|u| Some(u.clone())).collect())
-                .unwrap_or(vec![]);
-            value_cell.resize(max_value_length, None);
-
-            for (col_index, v) in key_cells.iter().chain(value_cell.iter()).enumerate() {
-                worksheet.write_string_with_format(
-                    row_index,
-                    col_index as u16,
-                    v.clone().unwrap_or_default(),
-                    &item_format,
-                )?;
-            }
-
-            {
-                let mut descendants = vec![node_rc.clone()];
-                for c_node in OutlineTree::ancestors(&node_rc) {
-                    if let Some(item) = c_node.borrow().item() {
-                        if item.level > 0 {
-                            let mut format = Format::new();
-                            if descendants.iter().any(|v| OutlineTree::prev(v).is_some()) {
-                                format = format.set_border_top(FormatBorder::Thin);
-                            }
-                            if descendants.iter().any(|v| OutlineTree::next(v).is_some()) {
-                                format = format.set_border_bottom(FormatBorder::Thin);
-                            }
-                            worksheet.set_cell_format(row_index, item.level as u16 - 1, &format)?;
-                        }
+        for node_rc in OutlineTree::descendants(&tree).iter() {
+            if node_rc.borrow().is_leaf() {
+                // Determine which keys should be visible on this row: first-leaf-only per ancestor chain until a prev exists
+                let mut key_cells: Vec<Option<String>> = vec![None; max_level];
+                for c_node in
+                    std::iter::once(node_rc.clone()).chain(OutlineTree::ancestors(node_rc))
+                {
+                    if let Some(c_item) = c_node.borrow().item() {
+                        key_cells[c_item.level as usize - 1] = Some(c_item.key.clone());
                     }
-                    descendants.push(c_node);
-                }
-            }
-
-            if self.options.integrate_cells == Some(IntegrateCellsOption::Colspan)
-                || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
-            {
-                if let Some(item) = node_rc.borrow().item() {
-                    if item.level < max_level as u32 {
-                        let val = key_cells[item.level as usize - 1].as_deref().unwrap_or("");
-                        worksheet.merge_range(
-                            row_index,
-                            item.level as u16 - 1,
-                            row_index,
-                            max_level as u16 - 1,
-                            val,
-                            &item_format,
-                        )?;
+                    if OutlineTree::prev(&c_node).is_some() {
+                        break;
                     }
                 }
-            }
 
-            if self.options.integrate_cells == Some(IntegrateCellsOption::Rowspan)
-                || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
-            {
-                // For each ancestor level, use the ancestor node pointer identity as group key.
-                // We rely on Rc pointer address via as_ptr() cast to usize, safe for grouping identity here.
-                let mut ancestors: Vec<_> = OutlineTree::ancestors(&node_rc).into_iter().collect();
-                // ensure index 0..=level-1 alignment by pushing current node at front
-                ancestors.insert(0, node_rc.clone());
+                let mut value_cell = node_rc
+                    .borrow()
+                    .item()
+                    .map(|v| v.value.iter().map(|u| Some(u.clone())).collect())
+                    .unwrap_or(vec![]);
+                value_cell.resize(max_value_length, None);
 
-                for anc in ancestors.into_iter() {
-                    if let Some(item) = anc.borrow().item() {
-                        let level_idx = item.level as usize - 1;
-                        let key = Rc::as_ptr(&anc) as usize;
-                        match (active_parent[level_idx], active_start_row[level_idx]) {
-                            (Some(prev_key), Some(start_row)) if prev_key != key => {
-                                let end_row = row_index - 1;
-                                if end_row > start_row {
-                                    let val = active_value[level_idx].as_deref().unwrap_or("");
-                                    worksheet.merge_range(
-                                        start_row,
-                                        level_idx as u16,
-                                        end_row,
-                                        level_idx as u16,
-                                        val,
-                                        &item_format,
-                                    )?;
+                for (col_index, v) in key_cells.iter().chain(value_cell.iter()).enumerate() {
+                    worksheet.write_string_with_format(
+                        row_index,
+                        col_index as u16,
+                        v.clone().unwrap_or_default(),
+                        &item_format,
+                    )?;
+                }
+
+                {
+                    let mut descendants = vec![node_rc.clone()];
+                    for c_node in OutlineTree::ancestors(node_rc) {
+                        if let Some(item) = c_node.borrow().item() {
+                            if item.level > 0 {
+                                let mut format = Format::new();
+                                if descendants.iter().any(|v| OutlineTree::prev(v).is_some()) {
+                                    format = format.set_border_top(FormatBorder::Thin);
                                 }
-                                active_parent[level_idx] = Some(key);
-                                active_start_row[level_idx] = Some(row_index);
-                                active_value[level_idx] = Some(item.key.clone());
+                                if descendants.iter().any(|v| OutlineTree::next(v).is_some()) {
+                                    format = format.set_border_bottom(FormatBorder::Thin);
+                                }
+                                worksheet.set_cell_format(
+                                    row_index,
+                                    item.level as u16 - 1,
+                                    &format,
+                                )?;
                             }
-                            (None, _) => {
-                                active_parent[level_idx] = Some(key);
-                                active_start_row[level_idx] = Some(row_index);
-                                active_value[level_idx] = Some(item.key.clone());
-                            }
-                            _ => { /* same group continues, do nothing */ }
                         }
+                        descendants.push(c_node);
                     }
                 }
-            }
 
-            for col_index in max_level..(max_level + max_value_length - 1) {
-                worksheet.set_cell_format(row_index, col_index as u16, &item_format)?;
+                // Record (leaf node, current worksheet row) for Rowspan pass
+                node_rows.push((Rc::clone(node_rc), row_index));
+                row_index += 1;
+            } else {
+                // Record (non-leaf node, current worksheet row) for Rowspan pass
+                node_rows.push((Rc::clone(node_rc), row_index));
             }
-
-            row_index += 1;
         }
 
-        // Flush pending rowspans at EOF
+        // Colspan pass:
+        if self.options.integrate_cells == Some(IntegrateCellsOption::Colspan)
+            || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
+        {
+            for (node_rc, ws_row) in &node_rows {
+                if node_rc.borrow().is_leaf() {
+                    if let Some(item) = node_rc.borrow().item() {
+                        if item.level < max_level as u32 {
+                            worksheet.merge_range(
+                                *ws_row,
+                                item.level as u16 - 1,
+                                *ws_row,
+                                max_level as u16 - 1,
+                                &item.key,
+                                &item_format,
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rowspan pass: accumulate rows per ancestor while it has next sibling, flush at sibling group end
         if self.options.integrate_cells == Some(IntegrateCellsOption::Rowspan)
             || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
         {
-            for (level_idx, start_row_opt) in active_start_row.iter().enumerate() {
-                if let Some(start_row) = start_row_opt {
-                    let start_row = *start_row;
-                    let end_row = row_index - 1;
-                    if end_row > start_row {
-                        let val = active_value[level_idx].as_deref().unwrap_or("");
-                        worksheet.merge_range(
-                            start_row,
-                            level_idx as u16,
-                            end_row,
-                            level_idx as u16,
-                            val,
-                            &item_format,
-                        )?;
+            for (node_rc_index, (node_rc, row_index)) in node_rows.iter().enumerate() {
+                if !node_rc.borrow().is_leaf() {
+                    if let Some((_, last_child_row_index)) = OutlineTree::descendants(node_rc)
+                        .last()
+                        .and_then(|last_child| {
+                            node_rows
+                                .iter()
+                                .skip(node_rc_index + 1)
+                                .find(|(v, _)| Rc::ptr_eq(v, last_child))
+                        })
+                    {
+                        if *row_index != *last_child_row_index {
+                            if let Some(item) = node_rc.borrow().item() {
+                                worksheet.merge_range(
+                                    *row_index,
+                                    item.level as u16 - 1,
+                                    *last_child_row_index,
+                                    item.level as u16 - 1,
+                                    &item.key,
+                                    &item_format,
+                                )?;
+                            }
+                        }
                     }
                 }
             }
