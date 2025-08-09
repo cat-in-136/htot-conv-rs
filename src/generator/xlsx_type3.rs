@@ -91,7 +91,7 @@ impl XlsxType3Generator {
                 if level <= item.level {
                     format_for_level = format_for_level.set_border_left(FormatBorder::Thin);
                 }
-                if (level < item.level) || (level == (max_level + 1)) {
+                if (level < item.level) || (level == max_level) {
                     format_for_level = format_for_level.set_border_right(FormatBorder::Thin);
                 }
                 if (level >= item.level) || (item_index == 0) {
