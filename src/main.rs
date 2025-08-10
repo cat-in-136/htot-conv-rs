@@ -126,7 +126,11 @@ fn main() -> anyhow::Result<()> {
             key_header: parsed_key_header,
             value_header: parsed_value_header,
         }),
-        _ => panic!("Unsupported from_type: {}", cli.from_type),
+        _ => anyhow::bail!(
+            "Unsupported from_type: {}. Supported types are: {}",
+            cli.from_type,
+            get_parser_types().join(", ")
+        ),
     };
 
     let to_options = match cli.to_type.as_str() {
@@ -147,7 +151,11 @@ fn main() -> anyhow::Result<()> {
         "xlsx_type5" => GeneratorOptions::XlsxType5(XlsxType5GeneratorOptions {
             integrate_cells: cli.to_integrate_cells,
         }),
-        _ => panic!("Unsupported to_type: {}", cli.to_type),
+        _ => anyhow::bail!(
+            "Unsupported to_type: {}. Supported types are: {}",
+            cli.to_type,
+            get_generator_types().join(", ")
+        ),
     };
 
     run_conversion(
