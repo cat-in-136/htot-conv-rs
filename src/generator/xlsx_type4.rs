@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::generator::base::IntegrateCellsOption;
 use crate::outline::{Outline, OutlineTree};
 use anyhow::Result;
@@ -66,90 +64,79 @@ impl XlsxType4Generator {
 
         row_index += 1;
 
-        let mut node_rows: Vec<(Rc<_>, u32)> = Vec::new();
+        let mut cell_data: Vec<Vec<Option<String>>> = Vec::new();
 
         // Pass 1: build display
         let tree = self.outline.to_tree();
         for node_rc in OutlineTree::descendants(&tree).iter() {
+            while cell_data.len() < row_index as usize {
+                cell_data.push(vec![None; col_index]);
+            }
+            let row_data = cell_data.last_mut().unwrap();
+
+            if let Some(item) = node_rc.borrow().item() {
+                row_data[item.level as usize - 1] = Some(item.key.clone());
+            }
             if node_rc.borrow().is_leaf() {
-                // Determine which keys should be visible on this row: first-leaf-only per ancestor chain until a prev exists
-                let mut key_cells: Vec<Option<String>> = vec![None; max_level];
-                for c_node in
-                    std::iter::once(node_rc.clone()).chain(OutlineTree::ancestors(node_rc))
-                {
-                    if let Some(c_item) = c_node.borrow().item() {
-                        key_cells[c_item.level as usize - 1] = Some(c_item.key.clone());
-                    }
-                    if OutlineTree::prev(&c_node).is_some() {
-                        break;
+                if let Some(item) = node_rc.borrow().item() {
+                    for (i, v) in item.value.iter().enumerate() {
+                        row_data[max_level + i] = Some(v.clone());
                     }
                 }
-
-                let mut value_cell = node_rc
-                    .borrow()
-                    .item()
-                    .map(|v| v.value.iter().map(|u| Some(u.clone())).collect())
-                    .unwrap_or(vec![]);
-                value_cell.resize(max_value_length, None);
-
-                for (col_index, v) in key_cells.iter().chain(value_cell.iter()).enumerate() {
-                    worksheet.write_string_with_format(
-                        row_index,
-                        col_index as u16,
-                        v.clone().unwrap_or_default(),
-                        &item_format,
-                    )?;
-                }
-
-                {
-                    let mut descendants = vec![node_rc.clone()];
-                    for c_node in OutlineTree::ancestors(node_rc) {
-                        if let Some(item) = c_node.borrow().item() {
-                            if item.level > 0 {
-                                let mut format = Format::new();
-                                if descendants.iter().any(|v| OutlineTree::prev(v).is_some()) {
-                                    format = format.set_border_top(FormatBorder::Thin);
-                                }
-                                if descendants.iter().any(|v| OutlineTree::next(v).is_some()) {
-                                    format = format.set_border_bottom(FormatBorder::Thin);
-                                }
-                                worksheet.set_cell_format(
-                                    row_index,
-                                    item.level as u16 - 1,
-                                    &format,
-                                )?;
-                            }
-                        }
-                        descendants.push(c_node);
-                    }
-                }
-
-                // Record (leaf node, current worksheet row) for Rowspan pass
-                node_rows.push((Rc::clone(node_rc), row_index));
                 row_index += 1;
-            } else {
-                // Record (non-leaf node, current worksheet row) for Rowspan pass
-                node_rows.push((Rc::clone(node_rc), row_index));
             }
         }
 
-        // Colspan pass:
+        // Borders:
+        for (j, row_data) in cell_data.iter().enumerate() {
+            for (i, key) in row_data.iter().enumerate() {
+                let mut format = Format::new();
+                if i >= max_level || j == 0 || key.is_some() {
+                    format = format.set_border_top(FormatBorder::Thin);
+                }
+                if i >= max_level
+                    || j == cell_data.len() - 1
+                    || cell_data[j + 1][0..=i].iter().any(|x| x.is_some())
+                {
+                    format = format.set_border_bottom(FormatBorder::Thin);
+                }
+                if i >= max_level || i == 0 || row_data[i..max_level].iter().any(|x| x.is_some()) {
+                    format = format.set_border_left(FormatBorder::Thin);
+                }
+                if i >= max_level - 1 || row_data[(i + 1)..max_level].iter().any(|x| x.is_some()) {
+                    format = format.set_border_right(FormatBorder::Thin);
+                }
+
+                let (row_index, col_index) = (j + 1, i);
+                worksheet.write_string_with_format(
+                    row_index as u32,
+                    col_index as u16,
+                    key.clone().unwrap_or_default(),
+                    &format,
+                )?;
+            }
+        }
+
+        // Colspan pass: accumulate columns per ancestor while it has next sibling, flush at
+        // sibling group end
         if self.options.integrate_cells == Some(IntegrateCellsOption::Colspan)
             || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
         {
-            for (node_rc, ws_row) in &node_rows {
-                if node_rc.borrow().is_leaf() {
-                    if let Some(item) = node_rc.borrow().item() {
-                        if item.level < max_level as u32 {
-                            worksheet.merge_range(
-                                *ws_row,
-                                item.level as u16 - 1,
-                                *ws_row,
-                                max_level as u16 - 1,
-                                &item.key,
-                                &item_format,
-                            )?;
-                        }
+            for (j, row_data) in cell_data.iter().enumerate() {
+                if let Some(leaf_col_index) =
+                    row_data[0..max_level].iter().rposition(|opt| opt.is_some())
+                {
+                    if leaf_col_index < max_level - 1 {
+                        let (row_index, (first_col, last_col)) =
+                            (j + 1, (leaf_col_index, max_level - 1));
+                        worksheet.merge_range(
+                            row_index as u32,
+                            first_col as u16,
+                            row_index as u32,
+                            last_col as u16,
+                            &row_data[leaf_col_index].clone().unwrap_or_default(),
+                            &item_format,
+                        )?;
                     }
                 }
             }
@@ -159,28 +146,23 @@ impl XlsxType4Generator {
         if self.options.integrate_cells == Some(IntegrateCellsOption::Rowspan)
             || self.options.integrate_cells == Some(IntegrateCellsOption::Both)
         {
-            for (node_rc_index, (node_rc, row_index)) in node_rows.iter().enumerate() {
-                if !node_rc.borrow().is_leaf() {
-                    if let Some((_, last_child_row_index)) = OutlineTree::descendants(node_rc)
-                        .last()
-                        .and_then(|last_child| {
-                            node_rows
-                                .iter()
-                                .skip(node_rc_index + 1)
-                                .find(|(v, _)| Rc::ptr_eq(v, last_child))
-                        })
-                    {
-                        if *row_index != *last_child_row_index {
-                            if let Some(item) = node_rc.borrow().item() {
-                                worksheet.merge_range(
-                                    *row_index,
-                                    item.level as u16 - 1,
-                                    *last_child_row_index,
-                                    item.level as u16 - 1,
-                                    &item.key,
-                                    &item_format,
-                                )?;
-                            }
+            for (j, row_data) in cell_data.iter().enumerate() {
+                for (i, cell) in row_data.iter().enumerate() {
+                    if let Some(key) = cell {
+                        if let Some(last_empty_cell_row_index) = (j + 1..cell_data.len())
+                            .take_while(|&row| cell_data[row][i].is_none())
+                            .last()
+                        {
+                            let ((first_row, last_row), col_index) =
+                                ((j + 1, last_empty_cell_row_index + 1), i);
+                            worksheet.merge_range(
+                                first_row as u32,
+                                col_index as u16,
+                                last_row as u32,
+                                col_index as u16,
+                                key,
+                                &item_format,
+                            )?;
                         }
                     }
                 }
