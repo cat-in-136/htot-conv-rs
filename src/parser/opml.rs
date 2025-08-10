@@ -1,18 +1,15 @@
 use anyhow::Result;
-use clap::Args;
 use quick_xml::events::attributes::Attributes;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
 use crate::outline::Outline;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Clone)]
 pub struct OpmlParserOptions {
     /// key header
-    #[arg(long)]
     pub key_header: Vec<String>,
     /// value header
-    #[arg(long)]
     pub value_header: Vec<String>,
 }
 

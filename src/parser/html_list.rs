@@ -1,13 +1,10 @@
-// src/parser/html_list.rs
-use clap::Args;
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use markup5ever_rcdom::{Handle, NodeData, RcDom};
 
-#[derive(Debug, Args)]
+#[derive(Debug, Clone)]
 pub struct HtmlListParserOptions {
     /// key header
-    #[arg(long)]
     pub key_header: Vec<String>,
 }
 
