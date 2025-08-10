@@ -6,6 +6,7 @@ use crate::generator::xlsx_type1::XlsxType1Generator;
 use crate::generator::xlsx_type2::XlsxType2Generator;
 use crate::generator::xlsx_type3::XlsxType3Generator;
 use crate::generator::xlsx_type4::XlsxType4Generator;
+use crate::generator::xlsx_type5::XlsxType5Generator;
 use crate::generator::GeneratorOptions;
 use crate::parser::dir_tree::DirTreeParser;
 use crate::parser::html_list::HtmlListParser;
@@ -129,6 +130,16 @@ pub fn run_conversion(
         }
         GeneratorOptions::XlsxType4(options) => {
             let generator = XlsxType4Generator::new(outline, options);
+            let mut workbook = Workbook::new();
+            let worksheet = workbook.add_worksheet();
+            generator.output_to_worksheet(worksheet)?;
+
+            // Save the workbook to a buffer and then write to the output_writer
+            let buffer = workbook.save_to_buffer()?;
+            output_writer.write_all(&buffer)?;
+        }
+        GeneratorOptions::XlsxType5(options) => {
+            let generator = XlsxType5Generator::new(outline, options);
             let mut workbook = Workbook::new();
             let worksheet = workbook.add_worksheet();
             generator.output_to_worksheet(worksheet)?;
