@@ -68,7 +68,7 @@ impl XlsxType4Generator {
 
         // Pass 1: build display
         let tree = self.outline.to_tree();
-        for node_rc in OutlineTree::descendants(&tree).iter() {
+        for node_rc in OutlineTree::descendants(&tree) {
             while cell_data.len() < row_index as usize {
                 cell_data.push(vec![None; col_index]);
             }

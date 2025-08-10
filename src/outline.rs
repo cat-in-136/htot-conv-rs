@@ -293,29 +293,20 @@ impl OutlineTree {
         !self.is_root() && self.children.is_empty()
     }
 
-    /// Returns all descendant nodes in pre-order (children left-to-right).
-    pub fn descendants(rc: &Rc<RefCell<OutlineTree>>) -> Vec<Rc<RefCell<OutlineTree>>> {
-        fn visit(n: &Rc<RefCell<OutlineTree>>, acc: &mut Vec<Rc<RefCell<OutlineTree>>>) {
-            let children: Vec<Rc<RefCell<OutlineTree>>> = n.borrow().children().to_vec();
-            for ch in children {
-                acc.push(Rc::clone(&ch));
-                visit(&ch, acc);
-            }
+    /// Returns an iterator over all descendant nodes in pre-order (children left-to-right).
+    pub fn descendants(rc: &Rc<RefCell<OutlineTree>>) -> Descendants {
+        let mut stack = Vec::new();
+        for child in rc.borrow().children().iter().rev() {
+            stack.push(child.clone());
         }
-        let mut res = Vec::new();
-        visit(rc, &mut res);
-        res
+        Descendants { stack }
     }
 
-    /// Returns ancestors from parent to root (excluding self).
-    pub fn ancestors(rc: &Rc<RefCell<OutlineTree>>) -> Vec<Rc<RefCell<OutlineTree>>> {
-        let mut res = Vec::new();
-        let mut cur = rc.borrow().parent();
-        while let Some(p) = cur {
-            res.push(Rc::clone(&p));
-            cur = p.borrow().parent();
+    /// Returns an iterator over ancestors from parent to root (excluding self).
+    pub fn ancestors(rc: &Rc<RefCell<OutlineTree>>) -> Ancestors {
+        Ancestors {
+            current: rc.borrow().parent(), // Start from the parent
         }
-        res
     }
 
     /// Returns previous sibling if exists.
@@ -348,6 +339,41 @@ impl OutlineTree {
         } else {
             Some(Rc::clone(&siblings.children()[idx + 1]))
         }
+    }
+}
+
+/// An iterator over the ancestors of an `OutlineTree` node.
+pub struct Ancestors {
+    current: Option<Rc<RefCell<OutlineTree>>>,
+}
+
+impl Iterator for Ancestors {
+    type Item = Rc<RefCell<OutlineTree>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_node = self.current.take()?; // Take the current node (which is the next ancestor)
+        self.current = next_node.borrow().parent(); // Set the next ancestor to its parent
+        Some(next_node)
+    }
+}
+
+/// An iterator over the descendants of an `OutlineTree` node.
+pub struct Descendants {
+    stack: Vec<Rc<RefCell<OutlineTree>>>,
+}
+
+impl Iterator for Descendants {
+    type Item = Rc<RefCell<OutlineTree>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_node = self.stack.pop()?; // Get the next node from the stack
+
+        // Add children to the stack in reverse order to process left-to-right
+        for child in next_node.borrow().children().iter().rev() {
+            self.stack.push(child.clone());
+        }
+
+        Some(next_node)
     }
 }
 
@@ -685,14 +711,14 @@ mod tests {
         let c = b.borrow().children()[0].clone();
 
         // descendants of A: [B, C, D]
-        let desc_a = OutlineTree::descendants(&a);
+        let desc_a: Vec<_> = OutlineTree::descendants(&a).collect();
         assert_eq!(desc_a.len(), 3);
         assert_eq!(desc_a[0].borrow().item().unwrap().key, "B");
         assert_eq!(desc_a[1].borrow().item().unwrap().key, "C");
         assert_eq!(desc_a[2].borrow().item().unwrap().key, "D");
 
         // ancestors of C: [B, A, root]
-        let anc_c = OutlineTree::ancestors(&c);
+        let anc_c: Vec<_> = OutlineTree::ancestors(&c).collect();
         assert_eq!(anc_c.len(), 3);
         assert_eq!(anc_c[0].borrow().item().unwrap().key, "B");
         assert_eq!(anc_c[1].borrow().item().unwrap().key, "A");
