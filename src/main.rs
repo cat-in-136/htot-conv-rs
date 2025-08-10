@@ -1,6 +1,6 @@
 use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
-use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
+
 use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type2::XlsxType2GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type3::XlsxType3GeneratorOptions;
@@ -52,8 +52,6 @@ struct Cli {
     #[arg(long = "from-dir-indicator")]
     dir_indicator: Option<String>,
 
-
-
     /// Group rows in XLSX output (for xlsx_type1, xlsx_type2, xlsx_type3).
     #[arg(long = "to-outline-rows", default_value_t = false)]
     to_outline_rows: bool,
@@ -83,7 +81,7 @@ fn main() -> anyhow::Result<()> {
         println!("type of output:");
         println!("{}", get_generator_types().join(" "));
         println!();
-        return Ok(())
+        return Ok(());
     }
 
     let input_path_option = cli.input;
@@ -95,34 +93,43 @@ fn main() -> anyhow::Result<()> {
         _ => Box::new(io::stdout()),
     };
 
+    let parsed_key_header: Vec<String> = cli
+        .key_header
+        .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
+        .unwrap_or_default();
+    let parsed_value_header: Vec<String> = cli
+        .value_header
+        .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
+        .unwrap_or_default();
+
     let from_options = match cli.from_type.as_str() {
         "simple_text" => ParserOptions::SimpleText(SimpleTextParserOptions {
             indent: cli.indent,
             delimiter: cli.delimiter,
             preserve_empty_line: cli.preserve_empty_line,
-            key_header: cli.key_header,
-            value_header: cli.value_header,
+            key_header: parsed_key_header,
+            value_header: parsed_value_header,
         }),
         "dir_tree" => ParserOptions::DirTree(DirTreeParserOptions {
-            key_header: cli.key_header,
+            key_header: parsed_key_header,
             glob_pattern: cli.glob_pattern,
             dir_indicator: cli.dir_indicator,
         }),
         "html_list" => ParserOptions::HtmlList(HtmlListParserOptions {
-            key_header: cli.key_header,
+            key_header: parsed_key_header,
         }),
         "mspdi" => ParserOptions::Mspdi(MspdiParserOptions {
-            key_header: cli.key_header,
-            value_header: cli.value_header,
+            key_header: parsed_key_header,
+            value_header: parsed_value_header,
         }),
         "opml" => ParserOptions::Opml(OpmlParserOptions {
-            key_header: cli.key_header,
-            value_header: cli.value_header,
+            key_header: parsed_key_header,
+            value_header: parsed_value_header,
         }),
         _ => panic!("Unsupported from_type: {}", cli.from_type),
     };
+
     let to_options = match cli.to_type.as_str() {
-        "xlsx_type0" => GeneratorOptions::XlsxType0(XlsxType0GeneratorOptions {}),
         "xlsx_type1" => GeneratorOptions::XlsxType1(XlsxType1GeneratorOptions {
             outline_rows: cli.to_outline_rows,
         }),

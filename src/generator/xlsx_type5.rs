@@ -145,7 +145,9 @@ impl XlsxType5Generator {
                 }
 
                 // Colspan merging
-                if self.options.integrate_cells == Some(IntegrateCellsOption::Colspan) && item.level < max_level as u32 {
+                if self.options.integrate_cells == Some(IntegrateCellsOption::Colspan)
+                    && item.level < max_level as u32
+                {
                     let first_col = item.level as u16 - 1;
                     let last_col = max_level as u16 - 1;
                     worksheet.merge_range(

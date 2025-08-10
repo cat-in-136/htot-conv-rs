@@ -8,7 +8,7 @@ use std::{
 /// Options for configuring the `DirTreeParser`.
 #[derive(Debug, Clone)]
 pub struct DirTreeParserOptions {
-    pub key_header: Option<String>,
+    pub key_header: Vec<String>,
     pub glob_pattern: Option<String>,
     pub dir_indicator: Option<String>,
 }
@@ -16,7 +16,7 @@ pub struct DirTreeParserOptions {
 impl Default for DirTreeParserOptions {
     fn default() -> Self {
         DirTreeParserOptions {
-            key_header: None,
+            key_header: Vec::new(),
             glob_pattern: Some("**/*".to_string()),
             dir_indicator: None,
         }
@@ -39,9 +39,7 @@ impl DirTreeParser {
         let mut outline = Outline::new();
 
         // Parse key_header
-        if let Some(s) = &self.option.key_header {
-            outline.key_header = s.split(',').map(|s| s.trim().to_string()).collect();
-        }
+        outline.key_header = self.option.key_header.clone();
         let dir_indicator = self.option.dir_indicator.clone().unwrap_or("".to_string());
 
         // Construct the full glob pattern relative to the input_path
@@ -103,7 +101,7 @@ mod tests {
     #[test]
     fn test_dir_tree_parser_options_default() {
         let options = DirTreeParserOptions::default();
-        assert_eq!(options.key_header, None);
+        assert_eq!(options.key_header, Vec::<String>::new());
         assert_eq!(options.glob_pattern, Some("**/*".to_string()));
         assert_eq!(options.dir_indicator, None);
     }
@@ -111,7 +109,7 @@ mod tests {
     #[test]
     fn test_dir_tree_parser_new() {
         let options = DirTreeParserOptions {
-            key_header: Some("Header1,Header2".to_string()),
+            key_header: vec!["Header1".to_string(), "Header2".to_string()],
             glob_pattern: Some("*.txt".to_string()),
             dir_indicator: Some("/".to_string()),
         };
@@ -191,7 +189,7 @@ mod tests {
         fs::write(tmp_dir.path().join("subdir1/file3.txt"), "content")?;
 
         let options = DirTreeParserOptions {
-            key_header: None,
+            key_header: Vec::new(),
             glob_pattern: Some("**/*.txt".to_string()),
             dir_indicator: Some("/".to_string()),
         };

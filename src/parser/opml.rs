@@ -10,10 +10,10 @@ use crate::outline::Outline;
 pub struct OpmlParserOptions {
     /// key header
     #[arg(long)]
-    pub key_header: Option<String>,
+    pub key_header: Vec<String>,
     /// value header
     #[arg(long)]
-    pub value_header: Option<String>,
+    pub value_header: Vec<String>,
 }
 
 pub struct OpmlParser {
@@ -27,18 +27,8 @@ impl OpmlParser {
 
     pub fn parse(&self, input: &str) -> Result<Outline> {
         let mut outline = Outline::new();
-        outline.key_header = self
-            .options
-            .key_header
-            .as_ref()
-            .map(|s| s.split(',').map(|s| s.to_string()).collect())
-            .unwrap_or_default();
-        outline.value_header = self
-            .options
-            .value_header
-            .as_ref()
-            .map(|s| s.split(',').map(|s| s.to_string()).collect())
-            .unwrap_or_default();
+        outline.key_header = self.options.key_header.clone();
+        outline.value_header = self.options.value_header.clone();
 
         let mut reader = Reader::from_str(input);
         reader.trim_text(true);
@@ -122,8 +112,8 @@ mod tests {
 </opml>
 "#;
         let options = OpmlParserOptions {
-            key_header: None,
-            value_header: None,
+            key_header: Vec::new(),
+            value_header: Vec::new(),
         };
         let parser = OpmlParser::new(options);
         let outline = parser.parse(xml_input).unwrap();
@@ -150,8 +140,8 @@ mod tests {
 </opml>
 "#;
         let options = OpmlParserOptions {
-            key_header: None,
-            value_header: Some("due,priority".to_string()),
+            key_header: Vec::new(),
+            value_header: vec!["due".to_string(), "priority".to_string()],
         };
         let parser = OpmlParser::new(options);
         let outline = parser.parse(xml_input).unwrap();

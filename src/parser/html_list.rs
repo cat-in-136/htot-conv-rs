@@ -8,7 +8,7 @@ use markup5ever_rcdom::{Handle, NodeData, RcDom};
 pub struct HtmlListParserOptions {
     /// key header
     #[arg(long)]
-    pub key_header: Option<String>,
+    pub key_header: Vec<String>,
 }
 
 /// A parser for HTML lists that extracts list items and their hierarchy.
@@ -37,12 +37,7 @@ impl HtmlListParser {
     ///   items.
     pub fn parse(&self, input: &str) -> anyhow::Result<crate::outline::Outline> {
         let mut outline = crate::outline::Outline::new();
-        outline.key_header = self
-            .options
-            .key_header
-            .as_ref()
-            .map(|s| s.split(',').map(|s| s.to_string()).collect())
-            .unwrap_or_default();
+        outline.key_header = self.options.key_header.clone();
         outline.value_header = Vec::new();
 
         let dom = parse_document(RcDom::default(), Default::default())
@@ -114,7 +109,9 @@ mod tests {
     #[test]
     fn test_simple_ul() {
         let html_input = "<ul><li>Item 1</li><li>Item 2<ul><li>Subitem 2.1</li></ul></li></ul>";
-        let options = HtmlListParserOptions { key_header: None };
+        let options = HtmlListParserOptions {
+            key_header: Vec::new(),
+        };
         let parser = HtmlListParser::new(options);
         let outline = parser.parse(html_input).unwrap();
 
@@ -130,7 +127,9 @@ mod tests {
     #[test]
     fn test_empty_input() {
         let html_input = "";
-        let options = HtmlListParserOptions { key_header: None };
+        let options = HtmlListParserOptions {
+            key_header: Vec::new(),
+        };
         let parser = HtmlListParser::new(options);
         let outline = parser.parse(html_input).unwrap();
 
@@ -141,7 +140,9 @@ mod tests {
     fn test_nested_ol() {
         let html_input =
             "<ol><li>One<ol><li>One.One</li><li>One.Two</li></ol></li><li>Two</li></ol>";
-        let options = HtmlListParserOptions { key_header: None };
+        let options = HtmlListParserOptions {
+            key_header: Vec::new(),
+        };
         let parser = HtmlListParser::new(options);
         let outline = parser.parse(html_input).unwrap();
 
@@ -159,7 +160,9 @@ mod tests {
     #[test]
     fn test_li_with_other_tags() {
         let html_input = "<ul><li><b>Bold Item</b></li><li><p>Paragraph Item</p></li></ul>";
-        let options = HtmlListParserOptions { key_header: None };
+        let options = HtmlListParserOptions {
+            key_header: Vec::new(),
+        };
         let parser = HtmlListParser::new(options);
         let outline = parser.parse(html_input).unwrap();
 
@@ -174,7 +177,7 @@ mod tests {
     fn test_key_header_option() {
         let html_input = "<ul><li>Item 1</li></ul>";
         let options = HtmlListParserOptions {
-            key_header: Some("Header1,Header2".to_string()),
+            key_header: vec!["Header1".to_string(), "Header2".to_string()],
         };
         let parser = HtmlListParser::new(options);
         let outline = parser.parse(html_input).unwrap();
