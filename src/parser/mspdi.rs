@@ -10,11 +10,11 @@ use crate::outline::Outline;
 #[derive(Debug, Args)]
 pub struct MspdiParserOptions {
     /// key header
-    #[arg(long, default_values_t = Vec::<String>::new())]
-    pub key_header: Vec<String>,
+    #[arg(long)]
+    pub key_header: Option<String>,
     /// value header
-    #[arg(long, default_values_t = Vec::<String>::new(), value_delimiter = ',')]
-    pub value_header: Vec<String>,
+    #[arg(long)]
+    pub value_header: Option<String>,
 }
 
 pub struct MspdiParser {
@@ -28,8 +28,18 @@ impl MspdiParser {
 
     pub fn parse(&self, input: &str) -> Result<Outline> {
         let mut outline = Outline::new();
-        outline.key_header = self.options.key_header.clone();
-        outline.value_header = self.options.value_header.clone();
+        outline.key_header = self
+            .options
+            .key_header
+            .as_ref()
+            .map(|s| s.split(',').map(|s| s.to_string()).collect())
+            .unwrap_or_default();
+        outline.value_header = self
+            .options
+            .value_header
+            .as_ref()
+            .map(|s| s.split(',').map(|s| s.to_string()).collect())
+            .unwrap_or_default();
 
         let mut reader = Reader::from_str(input);
         reader.trim_text(true);
@@ -127,8 +137,8 @@ mod tests {
 </Project>
 "#;
         let options = MspdiParserOptions {
-            key_header: vec![],
-            value_header: vec![],
+            key_header: None,
+            value_header: None,
         };
         let parser = MspdiParser::new(options);
         let outline = parser.parse(xml_input).unwrap();
@@ -165,8 +175,8 @@ mod tests {
 </Project>
 "#;
         let options = MspdiParserOptions {
-            key_header: vec![],
-            value_header: vec!["StartDate".to_string(), "FinishDate".to_string()],
+            key_header: None,
+            value_header: Some("StartDate,FinishDate".to_string()),
         };
         let parser = MspdiParser::new(options);
         let outline = parser.parse(xml_input).unwrap();

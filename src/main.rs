@@ -38,42 +38,27 @@ struct Cli {
     /// If true, empty lines in the input will be preserved as level-1 items.
     #[arg(long = "from-preserve-empty-line")]
     preserve_empty_line: bool,
-    /// A list of strings representing the key headers.
+    /// A comma-separated list of strings representing the key headers (for simple_text, dir_tree, html_list, mspdi, opml).
     #[arg(long = "from-key-header")]
     key_header: Option<String>,
-    /// A list of strings representing the value headers.
+    /// A comma-separated list of strings representing the value headers (for simple_text, mspdi, opml).
     #[arg(long = "from-value-header")]
     value_header: Option<String>,
 
     /// Glob pattern for dir_tree parser (e.g., "**/*", "*.txt").
-    #[arg(long = "from-dir-tree-glob-pattern", default_value = "**/*")]
-    from_dir_tree_glob_pattern: Option<String>,
+    #[arg(long = "from-glob-pattern", default_value = "**/*")]
+    glob_pattern: Option<String>,
     /// Directory indicator for dir_tree parser (e.g., "/").
-    #[arg(long = "from-dir-tree-dir-indicator")]
-    from_dir_tree_dir_indicator: Option<String>,
+    #[arg(long = "from-dir-indicator")]
+    dir_indicator: Option<String>,
 
-    /// A list of strings representing the key headers for html_list parser.
-    #[arg(long = "from-html-list-key-header", default_values_t = Vec::<String>::new())]
-    from_html_list_key_header: Vec<String>,
 
-    /// A list of strings representing the key headers for mspdi parser.
-    #[arg(long = "from-mspdi-key-header", default_values_t = Vec::<String>::new())]
-    from_mspdi_key_header: Vec<String>,
-    /// A list of strings representing the value headers for mspdi parser.
-    #[arg(long = "from-mspdi-value-header", default_values_t = Vec::<String>::new())]
-    from_mspdi_value_header: Vec<String>,
 
-    /// A list of strings representing the key headers for opml parser.
-    #[arg(long = "from-opml-key-header", default_values_t = Vec::<String>::new())]
-    from_opml_key_header: Vec<String>,
-    #[arg(long = "from-opml-value-header", default_values_t = Vec::<String>::new())]
-    from_opml_value_header: Vec<String>,
-
-    /// Group rows in XLSX output (for xlsx_type1).
+    /// Group rows in XLSX output (for xlsx_type1, xlsx_type2, xlsx_type3).
     #[arg(long = "to-outline-rows", default_value_t = false)]
     to_outline_rows: bool,
 
-    /// Integrate cells in XLSX output (for xlsx_type2).
+    /// Integrate cells in XLSX output (for xlsx_type2, xlsx_type3, xlsx_type4, xlsx_type5).
     #[arg(long = "to-integrate-cells")]
     to_integrate_cells: Option<htot_conv_rs::generator::base::IntegrateCellsOption>,
 
@@ -98,7 +83,7 @@ fn main() -> anyhow::Result<()> {
         println!("type of output:");
         println!("{}", get_generator_types().join(" "));
         println!();
-        return Ok(());
+        return Ok(())
     }
 
     let input_path_option = cli.input;
@@ -120,19 +105,19 @@ fn main() -> anyhow::Result<()> {
         }),
         "dir_tree" => ParserOptions::DirTree(DirTreeParserOptions {
             key_header: cli.key_header,
-            glob_pattern: cli.from_dir_tree_glob_pattern,
-            dir_indicator: cli.from_dir_tree_dir_indicator,
+            glob_pattern: cli.glob_pattern,
+            dir_indicator: cli.dir_indicator,
         }),
         "html_list" => ParserOptions::HtmlList(HtmlListParserOptions {
-            key_header: cli.from_html_list_key_header,
+            key_header: cli.key_header,
         }),
         "mspdi" => ParserOptions::Mspdi(MspdiParserOptions {
-            key_header: cli.from_mspdi_key_header,
-            value_header: cli.from_mspdi_value_header,
+            key_header: cli.key_header,
+            value_header: cli.value_header,
         }),
         "opml" => ParserOptions::Opml(OpmlParserOptions {
-            key_header: cli.from_opml_key_header,
-            value_header: cli.from_opml_value_header,
+            key_header: cli.key_header,
+            value_header: cli.value_header,
         }),
         _ => panic!("Unsupported from_type: {}", cli.from_type),
     };
