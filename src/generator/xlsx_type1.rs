@@ -191,16 +191,92 @@ mod tests {
         assert_eq!(read_worksheet.get_value((4, 4)).as_str(), "Val3C");
 
         // Verify Borders (example for Header, cell (1,1))
-        let header_style_1_1 = read_worksheet.get_style((1, 1));
+        let header_cell_coords = (1, 1); // A1
+        let header_style = read_worksheet.get_style(header_cell_coords);
         assert_eq!(
-            header_style_1_1
+            header_style
                 .get_borders()
                 .unwrap()
                 .get_top()
                 .get_border_style(),
-            Border::BORDER_THIN
+            Border::BORDER_THIN,
+            "Header cell {:?} top border",
+            header_cell_coords
         );
-        // ... add more border assertions if needed
+        assert_eq!(
+            header_style
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} bottom border",
+            header_cell_coords
+        );
+        assert_eq!(
+            header_style
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} left border",
+            header_cell_coords
+        );
+        assert_eq!(
+            header_style
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} right border",
+            header_cell_coords
+        );
+
+        // Verify Borders (example for Data Row 1, cell (1,2))
+        let data_cell_coords = (1, 2); // A2
+        let data_style = read_worksheet.get_style(data_cell_coords);
+        assert_eq!(
+            data_style
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} top border",
+            data_cell_coords
+        );
+        assert_eq!(
+            data_style
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} bottom border",
+            data_cell_coords
+        );
+        assert_eq!(
+            data_style
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} left border",
+            data_cell_coords
+        );
+        assert_eq!(
+            data_style
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} right border",
+            data_cell_coords
+        );
 
         drop(temp_file);
     }

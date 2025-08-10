@@ -263,6 +263,7 @@ mod tests {
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile;
     use umya_spreadsheet::reader::xlsx::read as read_xlsx;
+    use umya_spreadsheet::Border;
 
     #[test]
     fn test_xlsx_type3_generator_basic() -> Result<()> {
@@ -312,6 +313,100 @@ mod tests {
         // Verify Data Row 3 (Item 2)
         assert_eq!(read_worksheet.get_value((1, 4)).as_str(), "Item 2");
         assert_eq!(read_worksheet.get_value((2, 4)).as_str(), "Val2A");
+
+        // Verify Borders for Header cells (all thin)
+        let header_cell_coords_a1 = (1, 1); // A1
+        let header_style_a1 = read_worksheet.get_style(header_cell_coords_a1);
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} top border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} bottom border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} left border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} right border",
+            header_cell_coords_a1
+        );
+
+        // Verify Borders for Data cell A2 ("Item 1")
+        // Based on Ruby logic:
+        // For A2: item_index = 0, item.level = 1, max_level = 2 (from Item 1.1)
+        // Top: Thin (item_index == 0)
+        // Left: Thin (level <= item.level)
+        // Right: NONE (level < item.level (false) || level == max_level (false))
+        // Bottom: NONE (level > item.level (false) || item_index == last (false))
+        let data_cell_coords_a2 = (1, 2); // A2
+        let data_style_a2 = read_worksheet.get_style(data_cell_coords_a2);
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} top border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_NONE,
+            "Data cell {:?} bottom border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} left border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_NONE,
+            "Data cell {:?} right border",
+            data_cell_coords_a2
+        );
 
         drop(temp_file);
         Ok(())

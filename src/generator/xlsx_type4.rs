@@ -181,6 +181,7 @@ mod tests {
     use rust_xlsxwriter::Workbook;
     use tempfile::NamedTempFile;
     use umya_spreadsheet::reader::xlsx::read as read_xlsx;
+    use umya_spreadsheet::Border;
 
     #[test]
     fn test_output_worksheet_basic_and_no_merge() -> Result<()> {
@@ -235,6 +236,94 @@ mod tests {
         assert_eq!(ws.get_value((3, 3)).as_str(), "1.2.1"); // C3
         assert_eq!(ws.get_value((4, 3)).as_str(), "1.2.1(1)"); // D3
         assert_eq!(ws.get_value((5, 3)).as_str(), "1.2.1(2)"); // E3
+
+        // Verify Borders for Header cell A1 ("H1")
+        let header_cell_coords_a1 = (1, 1); // A1
+        let header_style_a1 = ws.get_style(header_cell_coords_a1);
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} top border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} bottom border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} left border",
+            header_cell_coords_a1
+        );
+        assert_eq!(
+            header_style_a1
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Header cell {:?} right border",
+            header_cell_coords_a1
+        );
+
+        // Verify Borders for Data cell A2 ("1")
+        let data_cell_coords_a2 = (1, 2); // A2
+        let data_style_a2 = ws.get_style(data_cell_coords_a2);
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_top()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} top border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_bottom()
+                .get_border_style(),
+            Border::BORDER_NONE,
+            "Data cell {:?} bottom border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_left()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} left border",
+            data_cell_coords_a2
+        );
+        assert_eq!(
+            data_style_a2
+                .get_borders()
+                .unwrap()
+                .get_right()
+                .get_border_style(),
+            Border::BORDER_THIN,
+            "Data cell {:?} right border",
+            data_cell_coords_a2
+        );
 
         assert_eq!(ws.get_merge_cells().len(), 0);
 
