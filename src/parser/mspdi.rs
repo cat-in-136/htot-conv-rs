@@ -29,7 +29,7 @@ impl MspdiParser {
         outline.value_header = self.options.value_header.clone();
 
         let mut reader = Reader::from_str(input);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut buf = Vec::new();
         let mut breadcrumb: Vec<String> = Vec::new();
@@ -61,7 +61,7 @@ impl MspdiParser {
                 }
                 Ok(Event::Text(e)) => {
                     if breadcrumb.contains(&"Task".to_string()) {
-                        let text = e.unescape()?.into_owned();
+                        let text = e.decode()?.into_owned();
                         if let Some(last_tag) = breadcrumb.last() {
                             current_task_values
                                 .entry(last_tag.clone())

@@ -28,7 +28,7 @@ impl OpmlParser {
         outline.value_header = self.options.value_header.clone();
 
         let mut reader = Reader::from_str(input);
-        reader.trim_text(true);
+        reader.config_mut().trim_text(true);
 
         let mut buf = Vec::new();
         let mut outline_level = 0;
