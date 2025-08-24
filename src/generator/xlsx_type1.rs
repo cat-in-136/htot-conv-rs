@@ -8,6 +8,8 @@ pub struct XlsxType1GeneratorOptions {
     /// group rows (default: no)
     #[arg(long, default_value_t = false)]
     pub outline_rows: bool,
+    /// If true, set the background color of all cells to white.
+    pub shironuri: bool,
 }
 
 pub struct XlsxType1Generator {
@@ -24,8 +26,19 @@ impl XlsxType1Generator {
         let mut row_index = 0;
         let max_value_length = self.outline.max_value_length();
 
-        let header_format = Format::new().set_border(FormatBorder::Thin);
-        let item_format = Format::new().set_border(FormatBorder::Thin);
+        let mut header_format = Format::new().set_border(FormatBorder::Thin);
+        let mut item_format = Format::new().set_border(FormatBorder::Thin);
+
+        if self.options.shironuri {
+            header_format = header_format.set_background_color(rust_xlsxwriter::Color::White);
+            item_format = item_format.set_background_color(rust_xlsxwriter::Color::White);
+        }
+
+        // If shironuri is true, set the background color of all cells to white.
+        if self.options.shironuri {
+            let cell_format = Format::new().set_background_color(rust_xlsxwriter::Color::White);
+            worksheet.set_column_range_format(0, 16383, &cell_format)?;
+        }
 
         // Write key header and value headers
         let mut headers: Vec<String> = Vec::new();
@@ -156,6 +169,7 @@ mod tests {
             outline,
             XlsxType1GeneratorOptions {
                 outline_rows: false,
+                shironuri: false,
             },
         );
 
@@ -295,7 +309,7 @@ mod tests {
         };
 
         let generator =
-            XlsxType1Generator::new(outline, XlsxType1GeneratorOptions { outline_rows: true });
+            XlsxType1Generator::new(outline, XlsxType1GeneratorOptions { outline_rows: true, shironuri: false });
 
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
@@ -319,6 +333,90 @@ mod tests {
         // assert_eq!(read_worksheet.get_row_dimension(&4).unwrap().get_outline_level(), &0);
         // Row 5 (Subitem 2.1) should have level 1
         // assert_eq!(read_worksheet.get_row_dimension(&5).unwrap().get_outline_level(), &1);
+
+        drop(temp_file);
+    }
+
+    #[test]
+    fn test_xlsx_type1_generator_shironuri_enabled() {
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![OutlineItem::new(
+                "Item 1",
+                1,
+                vec!["Val1A".to_string(), "Val1B".to_string()],
+            )],
+        };
+
+        let options = XlsxType1GeneratorOptions { outline_rows: false, shironuri: true };
+        let generator = XlsxType1Generator::new(outline, options);
+
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
+
+        // Save to a temporary file using rust_xlsxwriter
+        let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
+        let temp_path = temp_file.path().to_path_buf();
+        workbook.save(&temp_path).unwrap();
+
+        // Read the file back and assert its content (using umya_spreadsheet as instructed)
+        let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+
+        // Check if the background color of cell A1 is white
+        assert_eq!(
+            read_worksheet
+                .get_cell("A1")
+                .and_then(|cell| cell.get_style().get_background_color())
+                .map(|color| color.get_argb()),
+            Some(umya_spreadsheet::structs::Color::COLOR_WHITE)
+        );
+
+        // Note: We cannot check the background color of the bottom-right cell (XFD1048576)
+        // because umya_spreadsheet does not return styles for cells that have no value.
+        // The set_column_range_format should have set the background color for the entire worksheet,
+        // but umya_spreadsheet cannot detect it.
+
+        drop(temp_file);
+    }
+
+    #[test]
+    fn test_xlsx_type1_generator_shironuri_disabled() {
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![OutlineItem::new(
+                "Item 1",
+                1,
+                vec!["Val1A".to_string(), "Val1B".to_string()],
+            )],
+        };
+
+        let options = XlsxType1GeneratorOptions { outline_rows: false, shironuri: false };
+        let generator = XlsxType1Generator::new(outline, options);
+
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
+
+        // Save to a temporary file using rust_xlsxwriter
+        let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
+        let temp_path = temp_file.path().to_path_buf();
+        workbook.save(&temp_path).unwrap();
+
+        // Read the file back and assert its content (using umya_spreadsheet as instructed)
+        let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+
+        // Check if the background color of cell A1 is not set
+        assert!(matches!(
+            read_worksheet
+                .get_cell("A1")
+                .map(|cell| cell.get_style().get_background_color().is_none()),
+            Some(true)
+        ));
 
         drop(temp_file);
     }

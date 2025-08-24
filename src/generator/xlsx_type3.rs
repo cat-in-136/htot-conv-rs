@@ -9,6 +9,8 @@ pub struct XlsxType3GeneratorOptions {
     #[arg(long, default_value_t = false)]
     pub outline_rows: bool,
     pub integrate_cells: Option<crate::generator::base::IntegrateCellsOption>,
+    /// If true, set the background color of all cells to white.
+    pub shironuri: bool,
 }
 
 pub struct XlsxType3Generator {
@@ -26,8 +28,19 @@ impl XlsxType3Generator {
         let max_value_length = self.outline.max_value_length();
         let mut row_index = 0;
 
-        let header_format = Format::new().set_border(FormatBorder::Thin);
-        let item_format = Format::new().set_border(FormatBorder::Thin);
+        let mut header_format = Format::new().set_border(FormatBorder::Thin);
+        let mut item_format = Format::new().set_border(FormatBorder::Thin);
+
+        if self.options.shironuri {
+            header_format = header_format.set_background_color(rust_xlsxwriter::Color::White);
+            item_format = item_format.set_background_color(rust_xlsxwriter::Color::White);
+        }
+
+        // If shironuri is true, set the background color of all cells to white.
+        if self.options.shironuri {
+            let cell_format = Format::new().set_background_color(rust_xlsxwriter::Color::White);
+            worksheet.set_column_range_format(0, 16383, &cell_format)?;
+        }
 
         // Write key header and value headers for XlsxType3
         // Key Header 0 (A1)
@@ -88,6 +101,9 @@ impl XlsxType3Generator {
             // Apply borders based on Ruby logic
             for level in 1..=(max_level + 1) {
                 let mut format_for_level = Format::new();
+                if self.options.shironuri {
+                    format_for_level = format_for_level.set_background_color(rust_xlsxwriter::Color::White);
+                }
                 if level <= item.level {
                     format_for_level = format_for_level.set_border_left(FormatBorder::Thin);
                 }
@@ -160,7 +176,11 @@ impl XlsxType3Generator {
         }
 
         // Integrate cells
-        let format_for_integrate = Format::new().set_border(FormatBorder::Thin);
+        let mut format_for_integrate = Format::new();
+        if self.options.shironuri {
+            format_for_integrate = format_for_integrate.set_background_color(rust_xlsxwriter::Color::White);
+        }
+        format_for_integrate = format_for_integrate.set_border(FormatBorder::Thin);
         if self.options.integrate_cells
             == Some(crate::generator::base::IntegrateCellsOption::Colspan)
             || self.options.integrate_cells
@@ -282,6 +302,7 @@ mod tests {
             XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: None,
+                shironuri: false,
             },
         );
 
@@ -413,6 +434,100 @@ mod tests {
     }
 
     #[test]
+    fn test_xlsx_type3_generator_shironuri_enabled() -> Result<()> {
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![OutlineItem::new(
+                "Item 1",
+                1,
+                vec!["Val1A".to_string(), "Val1B".to_string()],
+            )],
+        };
+
+        let options = XlsxType3GeneratorOptions {
+            outline_rows: false,
+            integrate_cells: None,
+            shironuri: true,
+        };
+        let generator = XlsxType3Generator::new(outline, options);
+
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
+
+        // Save to a temporary file using rust_xlsxwriter
+        let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
+        let temp_path = temp_file.path().to_path_buf();
+        workbook.save(&temp_path).unwrap();
+
+        // Read the file back and assert its content (using umya_spreadsheet as instructed)
+        let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+
+        // Check if the background color of cell A1 is white
+        assert_eq!(
+            read_worksheet
+                .get_cell("A1")
+                .and_then(|cell| cell.get_style().get_background_color())
+                .map(|color| color.get_argb()),
+            Some(umya_spreadsheet::structs::Color::COLOR_WHITE)
+        );
+
+        // Note: We cannot check the background color of the bottom-right cell (XFD1048576)
+        // because umya_spreadsheet does not return styles for cells that have no value.
+        // The set_column_range_format should have set the background color for the entire worksheet,
+        // but umya_spreadsheet cannot detect it.
+
+        drop(temp_file);
+        Ok(())
+    }
+
+    #[test]
+    fn test_xlsx_type3_generator_shironuri_disabled() -> Result<()> {
+        let outline = Outline {
+            key_header: vec!["Key".to_string()],
+            value_header: vec!["Value1".to_string(), "Value2".to_string()],
+            item: vec![OutlineItem::new(
+                "Item 1",
+                1,
+                vec!["Val1A".to_string(), "Val1B".to_string()],
+            )],
+        };
+
+        let options = XlsxType3GeneratorOptions {
+            outline_rows: false,
+            integrate_cells: None,
+            shironuri: false,
+        };
+        let generator = XlsxType3Generator::new(outline, options);
+
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+        generator.output_to_worksheet(worksheet).unwrap();
+
+        // Save to a temporary file using rust_xlsxwriter
+        let temp_file = NamedTempFile::with_suffix(".xlsx").unwrap();
+        let temp_path = temp_file.path().to_path_buf();
+        workbook.save(&temp_path).unwrap();
+
+        // Read the file back and assert its content (using umya_spreadsheet as instructed)
+        let read_spreadsheet = umya_spreadsheet::reader::xlsx::read(&temp_path).unwrap();
+        let read_worksheet = read_spreadsheet.get_sheet(&0).unwrap();
+
+        // Check if the background color of cell A1 is not set
+        assert!(matches!(
+            read_worksheet
+                .get_cell("A1")
+                .map(|cell| cell.get_style().get_background_color().is_none()),
+            Some(true)
+        ));
+
+        drop(temp_file);
+        Ok(())
+    }
+
+    #[test]
     fn test_xlsx_type3_generator_outline_rows() -> Result<()> {
         let mut outline = Outline::default();
         outline.add_item("Item 1", 1, vec![]);
@@ -426,6 +541,7 @@ mod tests {
             XlsxType3GeneratorOptions {
                 outline_rows: true,
                 integrate_cells: None,
+                shironuri: false,
             },
         );
 
@@ -474,6 +590,7 @@ mod tests {
             XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Colspan),
+                shironuri: false,
             },
         );
 
@@ -530,6 +647,7 @@ mod tests {
             XlsxType3GeneratorOptions {
                 outline_rows: false,
                 integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Rowspan),
+                shironuri: false,
             },
         );
 

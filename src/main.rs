@@ -61,7 +61,7 @@ struct Cli {
     #[arg(long = "to-integrate-cells")]
     to_integrate_cells: Option<htot_conv_rs::generator::base::IntegrateCellsOption>,
 
-    /// Fill all cells with white color (for xlsx_type0).
+    /// Fill all cells with white color.
     #[arg(long = "to-shironuri", default_value_t = false)]
     to_shironuri: bool,
 
@@ -144,20 +144,25 @@ fn main() -> anyhow::Result<()> {
         }),
         "xlsx_type1" => GeneratorOptions::XlsxType1(XlsxType1GeneratorOptions {
             outline_rows: cli.to_outline_rows,
+            shironuri: cli.to_shironuri,
         }),
         "xlsx_type2" => GeneratorOptions::XlsxType2(XlsxType2GeneratorOptions {
             outline_rows: cli.to_outline_rows,
             integrate_cells: cli.to_integrate_cells,
+            shironuri: cli.to_shironuri,
         }),
         "xlsx_type3" => GeneratorOptions::XlsxType3(XlsxType3GeneratorOptions {
             outline_rows: cli.to_outline_rows,
             integrate_cells: cli.to_integrate_cells,
+            shironuri: cli.to_shironuri,
         }),
         "xlsx_type4" => GeneratorOptions::XlsxType4(XlsxType4GeneratorOptions {
             integrate_cells: cli.to_integrate_cells,
+            shironuri: cli.to_shironuri,
         }),
         "xlsx_type5" => GeneratorOptions::XlsxType5(XlsxType5GeneratorOptions {
             integrate_cells: cli.to_integrate_cells,
+            shironuri: cli.to_shironuri,
         }),
         _ => anyhow::bail!(
             "Unsupported to_type: {}. Supported types are: {}",
