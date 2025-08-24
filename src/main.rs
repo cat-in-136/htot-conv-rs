@@ -59,7 +59,7 @@ struct Cli {
 
     /// Integrate cells in XLSX output (for xlsx_type2, xlsx_type3, xlsx_type4, xlsx_type5).
     #[arg(long = "to-integrate-cells")]
-    to_integrate_cells: Option<htot_conv_rs::generator::base::IntegrateCellsOption>,
+    to_integrate_cells: Option<htot_conv_rs::generator::IntegrateCellsOption>,
 
     /// Fill all cells with white color.
     #[arg(long = "to-shironuri", default_value_t = false)]

@@ -1,3 +1,4 @@
+use crate::generator::IntegrateCellsOption;
 use crate::outline::Outline;
 use anyhow::Result;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
@@ -5,7 +6,7 @@ use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 #[derive(Debug, Clone)]
 pub struct XlsxType2GeneratorOptions {
     pub outline_rows: bool,
-    pub integrate_cells: Option<crate::generator::base::IntegrateCellsOption>,
+    pub integrate_cells: Option<IntegrateCellsOption>,
     pub shironuri: bool,
 }
 
@@ -155,7 +156,7 @@ impl XlsxType2Generator {
         format_for_integrate = format_for_integrate.set_border_left(FormatBorder::Thin);
 
         match self.options.integrate_cells {
-            Some(crate::generator::base::IntegrateCellsOption::Colspan) => {
+            Some(IntegrateCellsOption::Colspan) => {
                 let max_level = self.outline.max_level();
 
                 for (item_index, item) in self.outline.item.iter().enumerate() {
@@ -179,7 +180,7 @@ impl XlsxType2Generator {
                     }
                 }
             }
-            Some(crate::generator::base::IntegrateCellsOption::Rowspan) => {
+            Some(IntegrateCellsOption::Rowspan) => {
                 for (item_index, item) in self.outline.item.iter().enumerate() {
                     let min_row_index = (item_index + 1) as u32;
                     let mut max_row_index = min_row_index;
@@ -563,7 +564,7 @@ mod tests {
             outline,
             XlsxType2GeneratorOptions {
                 outline_rows: false,
-                integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Colspan),
+                integrate_cells: Some(IntegrateCellsOption::Colspan),
                 shironuri: false,
             },
         );
@@ -622,7 +623,7 @@ mod tests {
             outline,
             XlsxType2GeneratorOptions {
                 outline_rows: false,
-                integrate_cells: Some(crate::generator::base::IntegrateCellsOption::Rowspan),
+                integrate_cells: Some(IntegrateCellsOption::Rowspan),
                 shironuri: false,
             },
         );

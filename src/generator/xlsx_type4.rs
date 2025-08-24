@@ -1,4 +1,4 @@
-use crate::generator::base::IntegrateCellsOption;
+use crate::generator::IntegrateCellsOption;
 use crate::outline::{Outline, OutlineTree};
 use anyhow::Result;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};

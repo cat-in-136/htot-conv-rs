@@ -1,10 +1,18 @@
-pub mod base;
 pub mod xlsx_type0;
 pub mod xlsx_type1;
 pub mod xlsx_type2;
 pub mod xlsx_type3;
 pub mod xlsx_type4;
 pub mod xlsx_type5;
+
+use clap::ValueEnum;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum IntegrateCellsOption {
+    Colspan,
+    Rowspan,
+    Both,
+}
 
 #[derive(Debug, Clone)]
 pub enum GeneratorOptions {
