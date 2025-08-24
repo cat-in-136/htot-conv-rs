@@ -1,6 +1,7 @@
 use clap::Parser;
 use htot_conv_rs::cli::run_conversion;
 
+use htot_conv_rs::generator::xlsx_type0::XlsxType0GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type1::XlsxType1GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type2::XlsxType2GeneratorOptions;
 use htot_conv_rs::generator::xlsx_type3::XlsxType3GeneratorOptions;
@@ -59,6 +60,10 @@ struct Cli {
     /// Integrate cells in XLSX output (for xlsx_type2, xlsx_type3, xlsx_type4, xlsx_type5).
     #[arg(long = "to-integrate-cells")]
     to_integrate_cells: Option<htot_conv_rs::generator::base::IntegrateCellsOption>,
+
+    /// Fill all cells with white color (for xlsx_type0).
+    #[arg(long = "to-shironuri", default_value_t = false)]
+    to_shironuri: bool,
 
     /// Input file (default: stdin)
     input: Option<String>,
@@ -134,6 +139,9 @@ fn main() -> anyhow::Result<()> {
     };
 
     let to_options = match cli.to_type.as_str() {
+        "xlsx_type0" => GeneratorOptions::XlsxType0(XlsxType0GeneratorOptions {
+            shironuri: cli.to_shironuri,
+        }),
         "xlsx_type1" => GeneratorOptions::XlsxType1(XlsxType1GeneratorOptions {
             outline_rows: cli.to_outline_rows,
         }),
