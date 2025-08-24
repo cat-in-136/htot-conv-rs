@@ -1,15 +1,11 @@
 use crate::outline::Outline;
 use anyhow::Result;
-use clap::Args;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 
-#[derive(Debug, Clone, Args)]
+#[derive(Debug, Clone)]
 pub struct XlsxType3GeneratorOptions {
-    /// group rows (default: no)
-    #[arg(long, default_value_t = false)]
     pub outline_rows: bool,
     pub integrate_cells: Option<crate::generator::base::IntegrateCellsOption>,
-    /// If true, set the background color of all cells to white.
     pub shironuri: bool,
 }
 
@@ -102,7 +98,8 @@ impl XlsxType3Generator {
             for level in 1..=(max_level + 1) {
                 let mut format_for_level = Format::new();
                 if self.options.shironuri {
-                    format_for_level = format_for_level.set_background_color(rust_xlsxwriter::Color::White);
+                    format_for_level =
+                        format_for_level.set_background_color(rust_xlsxwriter::Color::White);
                 }
                 if level <= item.level {
                     format_for_level = format_for_level.set_border_left(FormatBorder::Thin);
@@ -178,7 +175,8 @@ impl XlsxType3Generator {
         // Integrate cells
         let mut format_for_integrate = Format::new();
         if self.options.shironuri {
-            format_for_integrate = format_for_integrate.set_background_color(rust_xlsxwriter::Color::White);
+            format_for_integrate =
+                format_for_integrate.set_background_color(rust_xlsxwriter::Color::White);
         }
         format_for_integrate = format_for_integrate.set_border(FormatBorder::Thin);
         if self.options.integrate_cells

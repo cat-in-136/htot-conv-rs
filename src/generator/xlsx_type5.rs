@@ -1,16 +1,12 @@
 use crate::generator::base::IntegrateCellsOption;
 use crate::outline::{Outline, OutlineTree};
 use anyhow::Result;
-use clap::Args;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Args)]
+#[derive(Debug, Clone)]
 pub struct XlsxType5GeneratorOptions {
-    /// integrate key cells (specify 'colspan')
-    #[arg(long)]
     pub integrate_cells: Option<IntegrateCellsOption>,
-    /// If true, set the background color of all cells to white.
     pub shironuri: bool,
 }
 

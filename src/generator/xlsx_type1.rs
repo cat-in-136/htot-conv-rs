@@ -1,14 +1,10 @@
 use crate::outline::Outline;
 use anyhow::Result;
-use clap::Args;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 
-#[derive(Debug, Clone, Args)]
+#[derive(Debug, Clone)]
 pub struct XlsxType1GeneratorOptions {
-    /// group rows (default: no)
-    #[arg(long, default_value_t = false)]
     pub outline_rows: bool,
-    /// If true, set the background color of all cells to white.
     pub shironuri: bool,
 }
 
@@ -308,8 +304,13 @@ mod tests {
             ..Default::default()
         };
 
-        let generator =
-            XlsxType1Generator::new(outline, XlsxType1GeneratorOptions { outline_rows: true, shironuri: false });
+        let generator = XlsxType1Generator::new(
+            outline,
+            XlsxType1GeneratorOptions {
+                outline_rows: true,
+                shironuri: false,
+            },
+        );
 
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
@@ -349,7 +350,10 @@ mod tests {
             )],
         };
 
-        let options = XlsxType1GeneratorOptions { outline_rows: false, shironuri: true };
+        let options = XlsxType1GeneratorOptions {
+            outline_rows: false,
+            shironuri: true,
+        };
         let generator = XlsxType1Generator::new(outline, options);
 
         let mut workbook = Workbook::new();
@@ -394,7 +398,10 @@ mod tests {
             )],
         };
 
-        let options = XlsxType1GeneratorOptions { outline_rows: false, shironuri: false };
+        let options = XlsxType1GeneratorOptions {
+            outline_rows: false,
+            shironuri: false,
+        };
         let generator = XlsxType1Generator::new(outline, options);
 
         let mut workbook = Workbook::new();

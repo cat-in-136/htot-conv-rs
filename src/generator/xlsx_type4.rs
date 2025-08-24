@@ -1,15 +1,11 @@
 use crate::generator::base::IntegrateCellsOption;
 use crate::outline::{Outline, OutlineTree};
 use anyhow::Result;
-use clap::Args;
 use rust_xlsxwriter::{Format, FormatBorder, Worksheet};
 
-#[derive(Debug, Clone, Args)]
+#[derive(Debug, Clone)]
 pub struct XlsxType4GeneratorOptions {
-    /// integrate key cells (specify 'colspan', 'rowspan' or 'both')
-    #[arg(long)]
     pub integrate_cells: Option<IntegrateCellsOption>,
-    /// If true, set the background color of all cells to white.
     pub shironuri: bool,
 }
 
@@ -499,7 +495,7 @@ mod tests {
         };
 
         // Colspan
-                let gen_col = XlsxType4Generator::new(
+        let gen_col = XlsxType4Generator::new(
             outline.clone(),
             XlsxType4GeneratorOptions {
                 integrate_cells: Some(IntegrateCellsOption::Colspan),
