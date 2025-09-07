@@ -4,28 +4,32 @@
 
 ## Features
 
-*   **Input Parsers**:
-    *   `simple_text`: Parses hierarchical text outlines with indentation.
-    *   `dir_tree`: Parses directory structures into outlines.
-    *   `html_list`: Parses HTML list structures (`<ul>`, `<ol>`) into outlines.
-    *   `mspdi`: Parses Microsoft Project XML (MSPDI) files into outlines.
-    *   `opml`: Parses OPML (Outline Processor Markup Language) files into outlines.
-*   **Output Generators (XLSX)**:
-    *   `xlsx_type0`: Basic XLSX output.
-    *   `xlsx_type1`: XLSX output with row outlining.
-    *   `xlsx_type2`: XLSX output with cell integration (colspan, rowspan).
-    *   `xlsx_type3`: Advanced XLSX output with specific header and item cell layouts, and cell integration (colspan, rowspan, both).
+### Input Parsers
+*   `simple_text`: Parses hierarchical text outlines with indentation.
+*   `dir_tree`: Parses directory structures into outlines.
+*   `html_list`: Parses HTML list structures (`<ul>`, `<ol>`) into outlines.
+*   `mspdi`: Parses Microsoft Project XML (MSPDI) files into outlines.
+*   `opml`: Parses OPML (Outline Processor Markup Language) files into outlines.
+
+### Output Generators (XLSX)
+*   `xlsx_type0`: Basic XLSX output.
+*   `xlsx_type1`: XLSX output with row outlining.
+*   `xlsx_type2`: XLSX output with cell integration (colspan, rowspan).
+*   `xlsx_type3`: Advanced XLSX output with specific header and item cell layouts, and cell integration (colspan, rowspan, both).
+*   `xlsx_type4`: XLSX output with cell integration (colspan, rowspan).
+*   `xlsx_type5`: XLSX output with cell integration (colspan, rowspan).
 
 ## Installation
 
 To build and install `htot-conv-rs`, you need to have Rust and Cargo installed.
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-repo/htot-conv-rs.git # Replace with actual repo URL
+# Navigate to the project directory
 cd htot-conv-rs
 
 # Build the project (release mode for optimized performance)
+cargo build --release
+
 # The executable will be located at target/release/htot-conv-rs
 ```
 
@@ -48,14 +52,17 @@ cd htot-conv-rs
 #     Manager
 #     Manager
 
-target/release/htot-conv-rs -f simple_text -t xlsx_type3 \
+./target/release/htot-conv-rs -f simple_text -t xlsx_type3 \
   --from-key-header Key --from-value-header Value1,Value2 \
   --from-indent="  " --from-delimiter=, \
   --to-integrate-cells=both \
   test_input.txt output.xlsx
 
+# List all available input and output types
+./target/release/htot-conv-rs --list-type
+
 # For more options and help:
-target/release/htot-conv-rs --help
+./target/release/htot-conv-rs --help
 ```
 
 ## Development
@@ -63,19 +70,25 @@ target/release/htot-conv-rs --help
 To set up the development environment and run tests:
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-repo/htot-conv-rs.git # Replace with actual repo URL
+# Navigate to the project directory
 cd htot-conv-rs
 
 # Run tests
-# cargo test
+cargo test
 
 # Format code
-# cargo fmt
+cargo fmt
 
 # Check for linter warnings
-# cargo clippy
+cargo clippy
+
+# Build in debug mode for development
+cargo build
 ```
+
+## Project Status
+
+This is an active port of the Ruby `htot_conv` project to Rust. The core functionality has been implemented with all planned input parsers and output generators. The project follows Rust best practices and includes comprehensive error handling.
 
 ## License
 
