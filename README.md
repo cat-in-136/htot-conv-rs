@@ -19,6 +19,35 @@
 *   `xlsx_type4`: XLSX output with cell integration (colspan, rowspan).
 *   `xlsx_type5`: XLSX output with cell integration (colspan, rowspan).
 
+### Visual Examples
+
+Here are examples of different XLSX output formats using the same sample data:
+
+#### xlsx_type0 (Basic)
+![xlsx_type0 output](docs/image/output_xlsx_type0.png)
+
+#### xlsx_type2 (Cell Integration)
+![xlsx_type2 output](docs/image/output_xlsx_type2.png)
+
+#### xlsx_type2 with Options
+With cell integration (colspan):
+![xlsx_type2 with colspan](docs/image/output_xlsx_type2_integrate_cells_colspan.png)
+
+With white background fill:
+![xlsx_type2 with shironuri](docs/image/output_xlsx_type2_shironuri.png)
+
+#### xlsx_type3 (Advanced Layout)
+![xlsx_type3 output](docs/image/output_xlsx_type3.png)
+
+With both cell integration:
+![xlsx_type3 with both integration](docs/image/output_xlsx_type3_integrate_cells_both.png)
+
+#### xlsx_type4
+![xlsx_type4 output](docs/image/output_xlsx_type4.png)
+
+#### xlsx_type5
+![xlsx_type5 output](docs/image/output_xlsx_type5.png)
+
 ## Installation
 
 To build and install `htot-conv-rs`, you need to have Rust and Cargo installed.

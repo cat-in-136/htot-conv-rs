@@ -1,3 +1,7 @@
+//! Command-line interface implementation.
+//! 
+//! This module handles the CLI argument parsing and main application logic.
+
 use anyhow::Result;
 use std::io::{Read, Write};
 

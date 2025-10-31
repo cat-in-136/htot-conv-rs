@@ -1,3 +1,8 @@
+//! Core outline data structures.
+//! 
+//! This module defines the fundamental data structures used to represent
+//! hierarchical outline data within the application.
+
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use thiserror::Error;

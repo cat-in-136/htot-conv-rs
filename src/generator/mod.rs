@@ -1,3 +1,8 @@
+//! Output generators for different XLSX formats.
+//! 
+//! This module contains generators that can convert the internal outline
+//! structure into various XLSX output formats.
+
 pub mod xlsx_type0;
 pub mod xlsx_type1;
 pub mod xlsx_type2;
