@@ -98,7 +98,6 @@
 //! `--integrate-cells=colspan` : group columns/rows.
 
 pub mod cli;
-pub mod docs;
 pub mod generator;
 pub mod outline;
 pub mod parser;
