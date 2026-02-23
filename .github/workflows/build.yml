@@ -1,0 +1,32 @@
+name: Build and Test
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+
+    - name: Run tests
+      run: cargo test
+
+    - name: Build project
+      run: cargo build --release
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: htot-conv-rs-release
+        path: target/release/htot-conv-rs
